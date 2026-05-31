@@ -336,11 +336,11 @@ const LEVELS = [
     '.RRR.',
     '..R..' ] },
   // 第2关:回字方块 — 黄边、红环、黄心(红砖会烧裂相邻)
-  { name:'🟧 回字方块', time:34, locked:[], mystery:[], wild:0, burnMs:4500, burnSlowMs:6500, redBonus:6, rows:[
+  { name:'🟧 回字方块', time:34, locked:[], mystery:[], wild:0, burnMs:4500, burnSlowMs:6500, rows:[
     'RRRRR',
-    'ROYOR',
+    'R.Y.R',
     'RYRYR',
-    'ROYOR',
+    'R.Y.R',
     'RRRRR' ] },
   // 第2关:+黑砖(保护相邻) — 青蛙:大量黑边轮廓,熟悉黑砖;头顶红心,绿身快速蔓延
   { name:'🐸 青蛙 · 认识黑砖', time:30, locked:[], mystery:['black'], wild:0, spreadMs:900, rows:[
@@ -374,7 +374,7 @@ const LEVELS = [
     '..GGGR.',
     '...RRRR' ] },
   // 第5关:自定义图案(按图纸精确复刻);绿身静态,黄砖不烧裂
-  { name:'🟩 方块', time:46, locked:[], mystery:[], wild:0, spreadMs:1800, burnMs:3800, burnSlowMs:3800, maxBurning:2, burnFireCap:1, crackMul:1, rows:[
+  { name:'🟩 方块', time:44, locked:[], mystery:[], wild:0, spreadMs:700, burnMs:700, burnSlowMs:700, rows:[
     '...........',
     '....Y......',
     '.GGRGRGGG..',
@@ -390,10 +390,10 @@ const LEVELS = [
   //   ③ 绿藤连成整片,会持续向上吃掉还没填的核心格(黄底/蓝芯/红焰),不赶紧填就被绿锁死;
   //   ④ 蓝芯居中会腐蚀消失 → 留到最后再填;彩虹砖×2 当救命底牌。
   { name:'🔥 能量反应堆 · 综合挑战', time:50, locked:[], mystery:[], wild:2,
-    spreadMs:2000, spreadBias:{col:6}, burnAfter:4, burnRate:0.2, burnMs:3000, burnSlowMs:4500, maxBurning:2, burnFireCap:1, crackMul:1, rows:[
+    spreadMs:1000, spreadBias:{col:6}, burnAfter:4, burnRate:0.2, burnMs:1300, burnSlowMs:2800, rows:[
     '.YYYYY.',
     '.RRRRR.',
-    '.QQQQQ.',
+    '.KKKKK.',
     '.YRBRY.',
     '.GGGGG.',
     '.GGGGG.',
@@ -403,7 +403,7 @@ const LEVELS = [
 // ---------- 每关开场说明(弹窗) ----------
 const LEVEL_INTROS = [
   { title:'第一关 · 填充', desc:'请在限定时间内填满画布吧!' },
-  { title:'第二关 · 毁灭', desc:'红色会烧毁它的邻居,请尽快在它捣乱前完成填充吧!如果来不及,那就在被烧毁后赶紧补填吧!角落的石头烧不坏也拆不掉,用旁边的红砖把它烧碎,就会露出可填充的格子。' },
+  { title:'第二关 · 毁灭', desc:'红色会烧毁它的邻居,请尽快在它捣乱前完成填充吧!如果来不及,那就在被烧毁后赶紧补填吧!' },
   { title:'第三关 · 生长', desc:'绿色的生长力不可小觑,体验一下它的神奇吧!但要小心被它永久侵占哦~' },
   { title:'第四关 · 协调', desc:'两个捣蛋鬼齐上阵。想一想,时间紧迫,试着利用它们各自的优点吧!' },
   { title:'第五关 · 距离', desc:'如果脾气太暴躁,那就先远离它吧!' },
@@ -439,19 +439,11 @@ function loadLevel(idx) {
   const need = {};
   burnableSet = new Set();
   lv.rows.forEach((row, r) => [...row].forEach((ch, c) => {
-    const R = or + r, C = oc + c;
-    if (ch === 'O' || ch === 'Q') {         // 石头障碍:被相邻红砖(火)烧碎后,露出"待填充"目标格
-      const under = (ch === 'Q') ? 'black' : 'red';   // O→黄砖目标; Q→黑砖目标
-      target[R][C] = under;
-      need[under] = (need[under]||0) + 1;            // 计入库存需求(玩家烧碎石头后要自己填)
-      grid[R][C] = { type: 'stone', byPlayer: false, burn: 0, under };
-      return;
-    }
     const t = CH[ch];
     if (t) {
-      target[R][C] = t;
+      target[or + r][oc + c] = t;
       need[t] = (need[t]||0) + 1;
-      if (ch === 'r') burnableSet.add(R + ',' + C);  // 标记为可被烧
+      if (ch === 'r') burnableSet.add((or + r) + ',' + (oc + c));  // 标记为可被烧
     }
   }));
   // 库存:按需求 + 缓冲(会被破坏的砖给更多)
@@ -711,37 +703,6 @@ function drawShatters() {
     ctx.restore();
   }
   ctx.globalAlpha = 1;
-}
-// 石头障碍:灰色岩块,带不规则纹理与高光,提示这是需要烧碎的障碍
-function drawStone(x, y, cell) {
-  const inset = 4, w = CELL - 8;
-  ctx.save();
-  roundRect(x + inset, y + inset, w, w, 6); ctx.clip();
-  // 渐变石身
-  const g = ctx.createLinearGradient(x, y, x + CELL, y + CELL);
-  g.addColorStop(0, '#9a958c');
-  g.addColorStop(0.5, '#7c776e');
-  g.addColorStop(1, '#615d56');
-  ctx.fillStyle = g;
-  ctx.fillRect(x, y, CELL, CELL);
-  // 用确定性随机画几块深浅斑块,做出粗糙岩石感
-  let s = ((x * 73856093) ^ (y * 19349663)) & 0x7fffffff;
-  const rnd = () => { s = (s * 1664525 + 1013904223) & 0x7fffffff; return s / 0x7fffffff; };
-  for (let i = 0; i < 5; i++) {
-    const px = x + inset + rnd() * w, py = y + inset + rnd() * w, rad = 3 + rnd() * 6;
-    ctx.fillStyle = rnd() > 0.5 ? 'rgba(255,255,255,.10)' : 'rgba(0,0,0,.14)';
-    ctx.beginPath(); ctx.arc(px, py, rad, 0, Math.PI * 2); ctx.fill();
-  }
-  // 顶部高光、底部阴影
-  ctx.fillStyle = 'rgba(255,255,255,.18)';
-  ctx.fillRect(x + inset, y + inset, w, 4);
-  ctx.fillStyle = 'rgba(0,0,0,.20)';
-  ctx.fillRect(x + inset, y + CELL - inset - 4, w, 4);
-  ctx.restore();
-  // 描边
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = 'rgba(50,46,40,.8)';
-  roundRect(x + inset, y + inset, w, w, 6); ctx.stroke();
 }
 // 逐渐扩展的烧裂裂纹 + 焦化变暗 + 边缘余烬微光(p.burn: 0→1)
 function drawCracks(x, y, cell) {
@@ -1161,11 +1122,6 @@ cv.addEventListener('click', e => {
   if (!inBounds(r, c)) return;   // 非可填充格子禁用,不可点击
   const cell = grid[r][c];
   if (cell) {
-    // 石头障碍:不可点击/拆除,需用相邻红砖(火)烧碎
-    if (cell.type === 'stone') {
-      flashHint('🪨 这是石头障碍,用相邻的红砖把它烧碎吧!');
-      return;
-    }
     // 被绿色蔓延出来的格子(孢子)已"长死"——不能拆除、不能改颜色
     if (cell.type === 'green' && !cell.byPlayer) {
       flashHint('🌿 这里被绿砖蔓延占据了,无法再改动!');
@@ -1228,32 +1184,21 @@ const ORTHO = [[-1,0],[1,0],[0,-1],[0,1]];
 function updateBurn(dt) {
   const lv = LEVELS[levelIdx];
   // 放够 burnAfter 个火砖后才开始烧裂(降低开局难度;默认 0 = 立即烧)
-  // 注意:石头障碍不受此门槛限制 —— 只要旁边有火砖就开始被烧,避免"挨着一块红却不烧"
-  let gateOpen = true;
   const burnAfter = lv.burnAfter || 0;
   if (burnAfter > 0) {
     let yc = 0;
     forEach((r, c, cell) => { if (cell && cell.type === 'yellow') yc++; });
-    if (yc < burnAfter) gateOpen = false;
+    if (yc < burnAfter) return;
   }
   const restrict = burnableSet && burnableSet.size > 0;   // 本关是否限定只烧指定格子
   const base = burnedOnce ? (lv.burnSlowMs || lv.burnMs || TICK_MS) : (lv.burnMs || TICK_MS);
-  const crackMs = base * (lv.crackMul || 1.4);   // 从挨近到完全碎裂的基准时长(可按关卡配 crackMul,越大越慢)
+  const crackMs = base * 1.4;        // 从挨近到完全碎裂的基准时长
   const healMs  = base * 2.2;        // 离开火源后自愈所需时长
-  const fireCap = lv.burnFireCap || 1;   // 相邻多块火砖的加速上限(越小越慢、越平稳)
-  const maxBurning = lv.maxBurning || Infinity;   // 同时最多几格在烧(限制"一片同时烧")
   const removed = [];
-  const cracked = [];                // 被烧碎 → 变成黄色填充的石头
-
-  // 第一遍:找出所有"紧贴火砖且未被保护"的可燃格(候选),以及它们的相邻火砖数
-  const candidates = [];
   forEach((r, c, cell) => {
     if (!cell || cell.type === 'yellow' || cell.type === 'black') return;   // 火砖/黑砖不被烧
-    const isStone = cell.type === 'stone';
-    if (!isStone && !gateOpen) return;          // 普通砖受 burnAfter 门槛限制;石头不受限
-    // 蔓延出来的绿砖(孢子)永远可被火烧掉,不受本关"限定可烧格"白名单限制
-    const isSpreadGreen = cell.type === 'green' && !cell.byPlayer;
-    if (!isStone && !isSpreadGreen && restrict && !burnableSet.has(r + ',' + c)) return;
+    if (restrict && !burnableSet.has(r + ',' + c)) return;
+    // 统计相邻火砖数 & 是否被黑砖保护
     let fire = 0, guarded = false;
     for (const [dr, dc] of ORTHO) {
       const nr = r + dr, nc = c + dc;
@@ -1263,40 +1208,25 @@ function updateBurn(dt) {
       if (t.type === 'black') guarded = true;
       if (t.type === 'yellow') fire++;
     }
-    if (fire > 0 && (!guarded || isStone)) { candidates.push({ r, c, cell, isStone, fire }); }   // 石头不被黑砖保护
-    else if (fire > 0 && guarded) {             // 紧贴火砖但被黑砖护住:护盾反馈音
+    if (fire > 0 && !guarded) {
+      if (!cell.burn) {                         // 首次被点燃:固定裂纹形态与个体速度差异
+        cell.burn = 0;
+        cell.crackSeed = (Math.random() * 1e9) | 0;
+        cell.crackMul = 0.8 + Math.random() * 0.5;
+      }
+      cell.burn += dt * 1000 / (crackMs * cell.crackMul) * fire;
+      if (cell.burn >= 1) removed.push([r, c]);
+    } else if (fire > 0 && guarded) {           // 紧贴火砖但被黑砖护住:护盾反馈音
       sfx('protect', playProtectSound, 600);
       if (cell.burn) { cell.burn -= dt * 1000 / healMs; if (cell.burn < 0) cell.burn = 0; }
-    } else if (cell.burn) {                     // 离开火源:缓慢自愈(石头不自愈)
-      if (!isStone) { cell.burn -= dt * 1000 / healMs; if (cell.burn < 0) cell.burn = 0; }
+    } else if (cell.burn) {                     // 离开火源:缓慢自愈
+      cell.burn -= dt * 1000 / healMs;
+      if (cell.burn < 0) cell.burn = 0;
     }
   });
-
-  // 限制同时烧的数量:已经在烧的(burn>0)优先继续;名额没满才允许新格开始烧,其余暂停。
-  // 石头障碍不占用、也不受该名额限制 —— 只要挨着火就一定会被烧。
-  candidates.sort((a, b) => (b.cell.burn || 0) - (a.cell.burn || 0));   // 进度高的优先
-  let burningCount = 0;
-  for (const cand of candidates) {
-    const { r, c, cell, isStone, fire } = cand;
-    const already = cell.burn > 0;
-    if (!isStone && burningCount >= maxBurning && !already) continue;   // 名额已满且这格还没开始烧 → 暂不点燃(石头除外)
-    if (!isStone) burningCount++;
-    if (!cell.burn) {                           // 首次被点燃:固定裂纹形态与个体速度差异
-      cell.burn = 0;
-      cell.crackSeed = (Math.random() * 1e9) | 0;
-      cell.crackMul = 0.8 + Math.random() * 0.5;
-    }
-    cell.burn += dt * 1000 / (crackMs * cell.crackMul) * Math.min(fire, fireCap);
-    if (cell.burn >= 1) (isStone ? cracked : removed).push([r, c]);
-  }
   if (removed.length) {
     removed.forEach(([r, c]) => { if (grid[r][c]) spawnShatter(r, c, grid[r][c].type); grid[r][c] = null; });
     burnedOnce = true;   // 标记已发生首次烧裂(之后烧裂节奏变慢)
-    buildPanel();
-  }
-  if (cracked.length) {  // 石头被烧碎 → 碎裂动画后变成空格,露出"需填充黄色"的目标格,由玩家自己填
-    cracked.forEach(([r, c]) => { spawnShatter(r, c, 'black'); grid[r][c] = null; });
-    burnedOnce = true;
     buildPanel();
   }
 }
@@ -1413,11 +1343,6 @@ function draw() {
     }
     // 已放置的砖
     if (f) {
-      if (f.type === 'stone') {
-        drawStone(x, y, f);
-        if (f.burn > 0) drawCracks(x, y, f);   // 被火烤 → 裂纹逐渐扩展
-        continue;                              // 石头不参与下面的描边/匹配逻辑
-      }
       drawBrick(x, y, f.type, f.age);
       // 被绿砖蔓延占据的格子(孢子):不可替换 → 压暗 + 暗色描边,与玩家放的砖区分
       if (f.type === 'green' && !f.byPlayer) {
