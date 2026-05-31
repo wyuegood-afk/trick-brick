@@ -14,43 +14,54 @@
   #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; gap: 12px; }
   #main { display: flex; align-items: flex-start; gap: 14px; }
 
-  /* 左侧材料库 */
+  /* 左侧材料库(素描手绘风:纸片底 + 墨黑描边 + 楷体) */
   #panel {
-    width: 210px; flex-shrink: 0; max-height: calc(100vh - 32px);
-    background: rgba(0,0,0,.35); padding: 14px; border-radius: 12px;
+    width: 220px; flex-shrink: 0; max-height: calc(100vh - 32px);
+    background: url('tipback.png') center/cover no-repeat, #f4efe1;
+    border: 2.5px solid #2a2a2a; box-shadow: 5px 5px 0 #2a2a2a;
+    padding: 16px; border-radius: 14px; color: #2a2a2a;
     display: flex; flex-direction: column; gap: 8px; overflow-y: auto;
+    font-family: "STKaiti","KaiTi","楷体",cursive;
   }
-  #panel h2 { font-size: 15px; margin-bottom: 2px; }
-  #panel .tip { font-size: 11px; opacity: .55; margin-bottom: 6px; line-height: 1.4; }
+  #panel h2 { font-size: 19px; font-weight: 800; margin-bottom: 2px; letter-spacing: 1px; }
+  #panel .tip { font-size: 12px; opacity: .7; margin-bottom: 6px; line-height: 1.5; }
   .brick-btn {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px;
-    border-radius: 8px; cursor: pointer; border: 2px solid transparent;
-    background: rgba(255,255,255,.06); transition: .15s; position: relative;
+    border-radius: 10px; cursor: pointer; border: 2px solid #2a2a2a;
+    background: rgba(255,253,245,.7); transition: .12s; position: relative;
+    box-shadow: 2px 2px 0 #2a2a2a;
   }
-  .brick-btn:hover { background: rgba(255,255,255,.14); }
-  .brick-btn.active { border-color: #fff; background: rgba(255,255,255,.2); }
-  .brick-btn.empty { opacity: .35; cursor: not-allowed; }
-  .swatch { width: 22px; height: 22px; border-radius: 4px; flex-shrink: 0; }
-  .brick-btn .info { font-size: 11px; line-height: 1.3; flex: 1; }
-  .brick-btn .info b { font-size: 13px; }
-  .brick-btn .info span { opacity: .65; }
-  .brick-btn .qty { font-size: 16px; font-weight: bold; min-width: 24px; text-align: right; }
+  .brick-btn:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #2a2a2a; background: #fffdf5; }
+  .brick-btn.active { border-color: #2a2a2a; background: #ffe9a8; box-shadow: 3px 3px 0 #2a2a2a; }
+  .brick-btn.empty { opacity: .4; cursor: not-allowed; box-shadow: none; transform: none; }
+  .swatch { width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0; border: 2px solid #2a2a2a; }
+  .brick-btn .info { font-size: 12px; line-height: 1.3; flex: 1; }
+  .brick-btn .info b { font-size: 14px; }
+  .brick-btn .info span { opacity: .7; }
+  .brick-btn .qty { font-size: 18px; font-weight: bold; min-width: 24px; text-align: right; }
 
   /* 中间舞台 */
   #stage { flex: 0 0 auto; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   #topbar {
     display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; width: 100%;
   }
-  .stat { background: rgba(0,0,0,.45); padding: 0 12px; height: 40px; border-radius: 10px; font-size: 13px; white-space: nowrap; flex: 0 0 auto; display: flex; align-items: center; box-sizing: border-box; }
+  .stat {
+    background: rgba(255,253,245,.92); color: #2a2a2a;
+    border: 2.5px solid #2a2a2a; box-shadow: 2px 2px 0 #2a2a2a;
+    padding: 0 14px; height: 42px; border-radius: 12px; font-size: 14px; white-space: nowrap;
+    flex: 0 0 auto; display: flex; align-items: center; box-sizing: border-box;
+    font-family: "STKaiti","KaiTi","楷体",cursive; font-weight: 700;
+  }
   .stat b { font-size: 18px; margin: 0 6px; }
   #progwrap { flex: 0 1 280px; min-width: 200px; display: flex; align-items: center; gap: 8px; }
-  #progbar { flex: 1; height: 10px; border-radius: 5px; background: rgba(255,255,255,.15); overflow: hidden; }
+  #progbar { flex: 1; height: 12px; border-radius: 6px; background: rgba(42,42,42,.12); border: 2px solid #2a2a2a; overflow: hidden; }
   #progbar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg,#6dd86d,#5dd6e8); transition: width .2s; }
   #order { flex: 0 0 auto; width: 184px; overflow: hidden; text-overflow: ellipsis; }
   #timer { padding: 0 22px; }
-  #timer.low b { color: #ff6b6b; }
-  #reset, #pause { color: #eee; border: none; cursor: pointer; font-family: inherit; transition: .15s; }
-  #reset:hover, #pause:hover { background: rgba(255,255,255,.18); }
+  #timer.low b { color: #e8503a; }
+  #reset, #pause { cursor: pointer; font-family: "STKaiti","KaiTi","楷体",cursive; transition: .12s; }
+  #reset:hover, #pause:hover { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #2a2a2a; background: #fffdf5; }
+  #reset:active, #pause:active { transform: translate(1px,1px); box-shadow: 1px 1px 0 #2a2a2a; }
 
   #pausemask {
     position: fixed; inset: 0; background: rgba(0,0,0,.18); display: none;
@@ -72,31 +83,35 @@
     100% { transform: scale(1);   opacity: .85; }
   }
 
-  /* 底部常驻关卡条 */
+  /* 底部常驻关卡条(素描手绘风) */
   #lvbar {
     margin-top: 12px;
-    display: flex; gap: 8px; background: rgba(0,0,0,.45);
+    display: flex; gap: 8px;
+    background: rgba(255,253,245,.92); border: 2.5px solid #2a2a2a; box-shadow: 3px 3px 0 #2a2a2a;
     padding: 8px 12px; border-radius: 16px;
     max-width: 100%; overflow-x: auto;
   }
   .lvchip {
     width: 54px; flex-shrink: 0; padding: 6px 4px; border-radius: 10px; cursor: pointer;
-    border: 2px solid transparent; background: rgba(255,255,255,.08); color: #eee;
-    font-family: inherit; text-align: center; transition: .15s;
+    border: 2px solid #2a2a2a; background: #fffdf5; color: #2a2a2a;
+    font-family: "STKaiti","KaiTi","楷体",cursive; text-align: center; transition: .12s;
+    box-shadow: 2px 2px 0 #2a2a2a;
   }
-  .lvchip:hover:not(.locked) { background: rgba(255,255,255,.2); }
-  .lvchip.locked { opacity: .35; cursor: not-allowed; }
-  .lvchip.current { border-color: #5dd6e8; background: rgba(93,214,232,.25); }
+  .lvchip:hover:not(.locked) { transform: translate(-1px,-1px); box-shadow: 3px 3px 0 #2a2a2a; }
+  .lvchip.locked { opacity: .4; cursor: not-allowed; box-shadow: none; }
+  .lvchip.current { background: #ffe9a8; box-shadow: 3px 3px 0 #2a2a2a; }
   .lvchip .ico { font-size: 20px; display: block; line-height: 1.2; }
-  .lvchip .n { font-size: 10px; opacity: .75; }
-  canvas { border-radius: 10px; background: rgba(0,0,0,.2); cursor: pointer; }
+  .lvchip .n { font-size: 10px; opacity: .8; }
+  canvas { border-radius: 10px; background: rgba(255,255,255,.06); cursor: pointer; }
   #hint {
     margin-top: 12px;
-    background: rgba(0,0,0,.5); padding: 8px 16px; border-radius: 20px; font-size: 13px;
+    background: rgba(255,253,245,.92); color: #2a2a2a; border: 2.5px solid #2a2a2a; box-shadow: 3px 3px 0 #2a2a2a;
+    padding: 8px 18px; border-radius: 20px; font-size: 14px;
+    font-family: "STKaiti","KaiTi","楷体",cursive; font-weight: 700;
   }
   #legend {
-    order: 1; margin-top: auto; padding-top: 10px; font-size: 11px; opacity: .55; line-height: 1.7;
-    border-top: 1px solid rgba(255,255,255,.12);
+    order: 1; margin-top: auto; padding-top: 10px; font-size: 12px; opacity: .8; line-height: 1.8;
+    border-top: 1.5px dashed #2a2a2a; color: #2a2a2a;
   }
 
   #overlay {
@@ -912,7 +927,7 @@ function checkEnd() {
 function draw() {
   ctx.clearRect(0,0,cv.width,cv.height);
   // 网格线
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+  ctx.strokeStyle = 'rgba(42,42,42,.35)'; ctx.lineWidth = 1;
   for (let r=0;r<=ROWS;r++){ ctx.beginPath(); ctx.moveTo(0,r*CELL); ctx.lineTo(cv.width,r*CELL); ctx.stroke(); }
   for (let c=0;c<=COLS;c++){ ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL,cv.height); ctx.stroke(); }
 
