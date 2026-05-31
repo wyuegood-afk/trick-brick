@@ -24,7 +24,7 @@
     font-family: "STKaiti","KaiTi","楷体",cursive;
   }
   #panel h2 { font-size: 19px; font-weight: 800; margin-bottom: 2px; letter-spacing: 1px; }
-  #panel .tip { font-size: 12px; opacity: .7; margin-bottom: 6px; line-height: 1.5; }
+  #panel .tip { font-size: 12px; margin-bottom: 6px; line-height: 1.5; white-space: nowrap; color: #8a1f1f; font-weight: 700; }
   .brick-btn {
     display: flex; align-items: center; gap: 8px; padding: 8px 10px;
     border-radius: 10px; cursor: pointer; border: 1.5px solid #8a8170;
@@ -37,8 +37,8 @@
   .swatch { width: 24px; height: 24px; border-radius: 5px; flex-shrink: 0; border: 1.5px solid #8a8170; }
   .brick-btn .info { font-size: 12px; line-height: 1.3; flex: 1; }
   .brick-btn .info b { font-size: 14px; }
-  .brick-btn .info span { opacity: .7; }
-  .brick-btn .qty { font-size: 18px; font-weight: bold; min-width: 24px; text-align: right; }
+  .brick-btn .info span { opacity: .7; white-space: nowrap; }
+  .brick-btn .qty { font-size: 18px; font-weight: bold; min-width: 24px; text-align: right; padding-right: 6px; flex-shrink: 0; }
 
   /* 中间舞台 */
   #stage { flex: 0 0 auto; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -112,7 +112,7 @@
   }
   #legend {
     order: 1; margin-top: auto; padding-top: 10px; font-size: 12px; opacity: .8; line-height: 1.8;
-    border-top: 1.5px dashed #2a2a2a; color: #2a2a2a;
+    border-top: 1.5px dashed #2a2a2a; color: #2a2a2a; white-space: nowrap;
   }
 
   #overlay {
@@ -133,6 +133,9 @@
     font-family: "STKaiti","KaiTi","楷体",cursive;
     font-size: 40px; font-weight: 800; letter-spacing: 2px; color: #3a352c;
     text-shadow: 1.5px 1.5px 0 #cdbfa0;
+  }
+  #overlay h1 img.ov-icon {
+    height: 1em; width: auto; vertical-align: -0.15em; margin-right: 8px;
   }
   #overlay p {
     font-family: "STKaiti","KaiTi","楷体",cursive;
@@ -240,8 +243,7 @@
       <div class="tip">点空格放砖 · 点已放的砖可拆除回收</div>
       <!-- 砖按钮由 JS 注入 -->
       <div id="legend">
-        虚线轮廓 = 图纸目标 · 金边 = 填对了<br>
-        🟡烧邻格 · 🟢会蔓延 · 🔵会腐蚀 · ⚫保护邻格
+        虚线轮廓 = 图纸目标 · 金边 = 填对了
       </div>
     </div>
     <div id="stage">
@@ -941,7 +943,7 @@ function draw() {
       const fillA = (t === 'red') ? .07 : .14;
       ctx.fillStyle = hexA(t, fillA); ctx.fillRect(x+3,y+3,CELL-6,CELL-6);
       // 黄格底色暗,虚线改用更亮的黄并提高不透明度,加强对比
-      ctx.strokeStyle = (t === 'red') ? 'rgba(255,206,78,.95)' : hexA(t, .6);
+      ctx.strokeStyle = (t === 'red') ? 'rgba(180,120,40,.95)' : hexA(t, .6);
       ctx.lineWidth = 2; ctx.setLineDash([5,4]);
       ctx.strokeRect(x+4,y+4,CELL-8,CELL-8); ctx.setLineDash([]);
     }
@@ -1052,7 +1054,9 @@ function showWin() {
 
   const ov = document.getElementById('overlay');
   const last = levelIdx >= LEVELS.length - 1;
-  document.getElementById('ov-title').textContent = last ? '🏆 全部完成!' : '✅ 完成订单!';
+  document.getElementById('ov-title').innerHTML = last
+    ? '🏆 全部完成!'
+    : '<img class="ov-icon" src="ok.png" alt="">完成订单!';
   document.getElementById('ov-sub').textContent = last
     ? '你顶住了所有捣乱,通关啦!'
     : '顾客很满意,准备下一单~';
