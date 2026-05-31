@@ -58,6 +58,7 @@
   #progbar > i { display: block; height: 100%; width: 0%; background: linear-gradient(90deg,#6dd86d,#5dd6e8); transition: width .2s; }
   #order { flex: 0 0 auto; width: 184px; overflow: hidden; text-overflow: ellipsis; }
   #timer { padding: 0 22px; font-weight: 800; }
+  #timer .timer-ico { height: 22px; width: auto; vertical-align: -5px; }
   #timer b { font-size: 24px; font-weight: 900; }
   #timer.low b { color: #e8503a; }
   #reset, #pause { cursor: pointer; font-family: "STKaiti","KaiTi","楷体",cursive; transition: .12s; }
@@ -102,6 +103,7 @@
   .lvchip.locked { opacity: .4; cursor: not-allowed; box-shadow: none; }
   .lvchip.current { border-color: #6b6354; background: #ffe9a8; box-shadow: 2px 2px 0 rgba(107,99,84,.4); }
   .lvchip .ico { font-size: 20px; display: block; line-height: 1.2; }
+  .lvchip .ico-img { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; display: inline-block; }
   .lvchip .n { font-size: 10px; opacity: .8; }
   canvas { border-radius: 10px; background: transparent; cursor: pointer; }
   #hint {
@@ -208,6 +210,18 @@
     opacity: 0; pointer-events: none; transition: opacity .6s ease;
   }
   #splash-ui.show { opacity: 1; pointer-events: auto; }
+  /* 右上角"跳过动画"按钮 */
+  #splash-skip {
+    position: fixed; top: 18px; right: 18px; z-index: 2;
+    font-family: "STKaiti","KaiTi","楷体",cursive;
+    font-size: 15px; font-weight: 700; color: #fff;
+    background: rgba(255,255,255,.16); border: 1.5px solid rgba(255,255,255,.7);
+    border-radius: 999px; padding: 7px 18px; cursor: pointer;
+    backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    transition: background .15s, transform .12s;
+  }
+  #splash-skip:hover { background: rgba(255,255,255,.32); transform: translateY(-1px); }
+  #splash-skip:active { transform: translateY(1px); }
   .splash-title {
     font-family: "STKaiti","KaiTi","楷体",cursive;
     font-size: 54px; font-weight: 800; letter-spacing: 4px; color:#222;
@@ -216,7 +230,7 @@
   }
   .splash-sub {
     font-family: "STKaiti","KaiTi","楷体",cursive;
-    font-size: 16px; opacity: .85; max-width: 440px; line-height: 1.9;
+    font-size: 16px; opacity: .85; line-height: 1.9; white-space: nowrap;
     animation: splashFade .8s ease .3s both;
   }
   #splash-start {
@@ -238,9 +252,10 @@
 <div id="wrap">
   <div id="topbar">
     <div class="stat" id="order">第 1/7 关</div>
-    <div class="stat" id="timer">⏱ <b>60</b>s</div>
+    <div class="stat" id="timer"><img class="timer-ico" src="clock.png" alt=""> <b>60</b>s</div>
     <button class="stat" id="pause">⏸ 暂停</button>
     <button class="stat" id="reset">↻ 重置本关</button>
+    <button class="stat" id="mute">🔊 音效</button>
     <div class="stat" id="progwrap">完成度 <b id="prog-txt">0%</b><div id="progbar"><i></i></div></div>
   </div>
   <div id="main">
@@ -279,6 +294,7 @@
   <video id="splash-video" autoplay muted playsinline preload="auto">
     <source src="welcome.mp4" type="video/mp4">
   </video>
+  <button id="splash-skip">跳过动画 ›</button>
   <div id="splash-ui">
     <div class="splash-title">会捣乱的积木</div>
     <div class="splash-sub">每块积木都有自己的脾气——🔴会烧邻格、🟢会蔓延、🔵会腐蚀、⚫会护邻。<br>趁它们捣乱之前，照着图纸拼出订单！</div>
@@ -320,7 +336,7 @@ const LEVELS = [
     '.RRR.',
     '..R..' ] },
   // 第2关:回字方块 — 黄边、红环、黄心(红砖会烧裂相邻)
-  { name:'🟧 回字方块', time:29, locked:[], mystery:[], wild:0, rows:[
+  { name:'🟧 回字方块', time:34, locked:[], mystery:[], wild:0, burnMs:3000, burnSlowMs:4500, rows:[
     'RRRRR',
     'RYYYR',
     'RYRYR',
@@ -338,7 +354,7 @@ const LEVELS = [
     '.GGGGGGG.',
     '.........' ] },
   // 第3关:+绿砖(蔓延) — 带茎花
-  { name:'🌱 带茎花 · 认识绿砖', time:19, locked:[], mystery:['green'], wild:0,
+  { name:'🌱 带茎花 · 认识绿砖', time:19, locked:[], mystery:[], wild:0,
     burnRate:0.5, burnMs:900, burnSlowMs:3500, burnAfter:4, redBonus:8, spreadMs:700, spreadBias:{col:6}, rows:[
     '.RRR.',
     'RYRYR',
@@ -358,7 +374,7 @@ const LEVELS = [
     '..GGGR.',
     '...RRRR' ] },
   // 第5关:自定义图案(按图纸精确复刻);绿身静态,黄砖不烧裂
-  { name:'🟩 方块', time:40, locked:[], mystery:[], wild:0, spreadMs:700, burnMs:700, burnSlowMs:700, rows:[
+  { name:'🟩 方块', time:44, locked:[], mystery:[], wild:0, spreadMs:700, burnMs:700, burnSlowMs:700, rows:[
     '...........',
     '....Y......',
     '.GGRGRGGG..',
@@ -525,6 +541,7 @@ function perfNow() { return performance.now(); }
 let shatters = [];      // 飞散的碎块粒子
 let lastFrame = perfNow();
 function spawnShatter(r, c, type) {
+  sfx('shatter', playShatterSound, 60);
   const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
   const color = (type === 'rainbow') ? '#ffce4e' : (COLORS[type] || '#888');
   const N = 11;          // 每格碎块数量
@@ -565,6 +582,7 @@ function spawnShatter(r, c, type) {
 }
 // 蓝砖腐蚀消失:向上冒泡 + 整体淡出溶解
 function spawnDissolve(r, c, type) {
+  sfx('dissolve', playDissolveSound, 90);
   const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
   const color = COLORS[type] || '#5d9ce8';
   const N = 10;
@@ -585,6 +603,7 @@ function spawnDissolve(r, c, type) {
 }
 // 绿砖蔓延占格:冒出的扩散绿环 + 几点向外迸的绿芽
 function spawnSprout(r, c) {
+  sfx('spread', playSpreadSound, 110);
   const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
   const color = COLORS.green;
   shatters.push({ kind: 'ring', x: cx, y: cy, maxR: CELL * 0.55, color, life: 0, ttl: 0.4 });
@@ -737,7 +756,9 @@ function drawCracks(x, y, cell) {
   ctx.restore();
 }
 let audioCtx;
+let soundMuted = false;          // 全局静音开关
 function playPlaceSound() {
+  if (soundMuted) return;
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   const ctx = audioCtx;
@@ -777,6 +798,136 @@ function playPlaceSound() {
   mainGain.gain.setValueAtTime(0.6, now);
   filter.connect(mainGain);
   mainGain.connect(ctx.destination);
+}
+
+// ---------- 副作用音效:碎裂 / 蔓延 / 消融 ----------
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+// 副作用音效节流:同一种声音在极短时间内只触发一次,避免一波多格叠成噪音
+const _sfxLast = {};
+function sfx(name, fn, minGap) {
+  if (soundMuted) return;
+  const t = perfNow();
+  if (_sfxLast[name] && t - _sfxLast[name] < (minGap || 70)) return;
+  _sfxLast[name] = t;
+  try { fn(); } catch (e) {}
+}
+// 碎裂:一段短噪声 burst 经带通滤波 → "咔嚓/砖块崩碎"的脆响
+function playShatterSound() {
+  const ac = ensureAudio();
+  const now = ac.currentTime;
+  const dur = 0.32;
+  // 白噪声缓冲
+  const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    const t = i / data.length;
+    data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.6);   // 越往后越弱
+  }
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const bp = ac.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.setValueAtTime(1600, now);
+  bp.frequency.exponentialRampToValueAtTime(500, now + dur);    // 音色由脆转闷,像崩落
+  bp.Q.value = 0.8;
+  const g = ac.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.5, now + 0.008);        // 极快起音
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(bp); bp.connect(g); g.connect(ac.destination);
+  src.start(now); src.stop(now + dur);
+  // 叠一个低频"咚",增加碎裂的重量感
+  const osc = ac.createOscillator(); const og = ac.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(180, now);
+  osc.frequency.exponentialRampToValueAtTime(70, now + 0.18);
+  og.gain.setValueAtTime(0.3, now);
+  og.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+  osc.connect(og); og.connect(ac.destination);
+  osc.start(now); osc.stop(now + 0.2);
+}
+// 蔓延:轻快的上滑短音 + 一点噪声沙沙,像藤蔓"啵"地冒出
+function playSpreadSound() {
+  const ac = ensureAudio();
+  const now = ac.currentTime;
+  const osc = ac.createOscillator(); const g = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(420, now);
+  osc.frequency.exponentialRampToValueAtTime(900, now + 0.14);  // 上滑
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.22);
+  osc.connect(g); g.connect(ac.destination);
+  osc.start(now); osc.stop(now + 0.24);
+  // 一小撮高频沙沙(叶片摩擦感)
+  const dur = 0.12;
+  const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3000;
+  const ng = ac.createGain(); ng.gain.setValueAtTime(0.08, now); ng.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  src.connect(hp); hp.connect(ng); ng.connect(ac.destination);
+  src.start(now); src.stop(now + dur);
+}
+// 消融:下滑的低沉音 + 滤波噪声,像能量"咻"地溶解蒸发
+function playDissolveSound() {
+  const ac = ensureAudio();
+  const now = ac.currentTime;
+  const dur = 0.5;
+  const osc = ac.createOscillator(); const g = ac.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(700, now);
+  osc.frequency.exponentialRampToValueAtTime(160, now + dur);   // 下滑溶解
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.16, now + 0.03);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  osc.connect(g); g.connect(ac.destination);
+  osc.start(now); osc.stop(now + dur);
+  // 频率渐降的滤波噪声,营造"咝——"的气泡蒸发声
+  const buf = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) { const t = i / data.length; data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 1.2); }
+  const src = ac.createBufferSource(); src.buffer = buf;
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(2200, now);
+  lp.frequency.exponentialRampToValueAtTime(300, now + dur);
+  const ng = ac.createGain(); ng.gain.setValueAtTime(0.12, now); ng.gain.exponentialRampToValueAtTime(0.001, now + dur);
+  src.connect(lp); lp.connect(ng); ng.connect(ac.destination);
+  src.start(now); src.stop(now + dur);
+}
+// 黑砖护住相邻砖:一记温和的低频"嗡"+轻微泛音,像护盾稳住
+function playProtectSound() {
+  const ac = ensureAudio();
+  const now = ac.currentTime;
+  [220, 330].forEach((f, i) => {
+    const osc = ac.createOscillator(); const g = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(f, now);
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(i ? 0.06 : 0.12, now + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.45);
+    osc.connect(g); g.connect(ac.destination);
+    osc.start(now); osc.stop(now + 0.45);
+  });
+}
+// 放错颜色:短促的下行"哔噗",提示这格颜色不对
+function playWrongSound() {
+  const ac = ensureAudio();
+  const now = ac.currentTime;
+  const osc = ac.createOscillator(); const g = ac.createGain();
+  osc.type = 'square';
+  osc.frequency.setValueAtTime(300, now);
+  osc.frequency.exponentialRampToValueAtTime(150, now + 0.16);
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.12, now + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.2);
+  const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1200;
+  osc.connect(lp); lp.connect(g); g.connect(ac.destination);
+  osc.start(now); osc.stop(now + 0.2);
 }
 
 // ---------- 通关音效:星星飞散 ----------
@@ -932,6 +1083,11 @@ cv.addEventListener('click', e => {
       grid[r][c] = { type: placed, byPlayer: true, age: 0, protect: false };
       inventory[placed]--;
       playPlaceSound();
+      // 放错颜色提示音(目标格存在且颜色不匹配,彩虹砖万能不算错)
+      const tgt = target[r][c];
+      if (tgt && placed !== tgt && placed !== 'rainbow') {
+        sfx('wrong', playWrongSound, 80);
+      }
       // 第一次放下神秘砖 → 揭示并提示其副作用
       if (mysterySet.has(placed) && !revealed.has(placed)) {
         revealed.add(placed);
@@ -994,6 +1150,9 @@ function updateBurn(dt) {
       }
       cell.burn += dt * 1000 / (crackMs * cell.crackMul) * fire;
       if (cell.burn >= 1) removed.push([r, c]);
+    } else if (fire > 0 && guarded) {           // 紧贴火砖但被黑砖护住:护盾反馈音
+      sfx('protect', playProtectSound, 600);
+      if (cell.burn) { cell.burn -= dt * 1000 / healMs; if (cell.burn < 0) cell.burn = 0; }
     } else if (cell.burn) {                     // 离开火源:缓慢自愈
       cell.burn -= dt * 1000 / healMs;
       if (cell.burn < 0) cell.burn = 0;
@@ -1119,6 +1278,17 @@ function draw() {
     // 已放置的砖
     if (f) {
       drawBrick(x, y, f.type, f.age);
+      // 被绿砖蔓延占据的格子(孢子):不可替换 → 压暗 + 暗色描边,与玩家放的砖区分
+      if (f.type === 'green' && !f.byPlayer) {
+        ctx.save();
+        roundRect(x+4, y+4, CELL-8, CELL-8, 5); ctx.clip();
+        ctx.fillStyle = 'rgba(0,0,0,.4)';
+        ctx.fillRect(x, y, CELL, CELL);
+        ctx.restore();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(20,60,20,.85)';
+        roundRect(x+4, y+4, CELL-8, CELL-8, 5); ctx.stroke();
+      }
       if (f.burn > 0) drawCracks(x, y, f);     // 正在被烤裂:画逐渐扩展的裂纹
       // 填对了不描边;放错颜色(含绿砖蔓延占错格)时,用该格应有的正确颜色描边提示
       const correct = t && (f.type === t || f.type === 'rainbow');
@@ -1213,7 +1383,7 @@ function updateHUD() {
   document.querySelector('#progbar i').style.width = (p.pct*100) + '%';
   const left = Math.max(0, Math.ceil((deadline - perfNow())/1000));
   const tEl = document.getElementById('timer');
-  tEl.innerHTML = '⏱ <b>' + left + '</b>s';
+  tEl.innerHTML = '<img class="timer-ico" src="clock.png" alt=""> <b>' + left + '</b>s';
   tEl.classList.toggle('low', left <= 10);
 }
 
@@ -1241,7 +1411,7 @@ function showLose() {
   playFailSound();
   const ov = document.getElementById('overlay');
   const p = evalProgress();
-  document.getElementById('ov-title').textContent = '⏰ 时间到';
+  document.getElementById('ov-title').innerHTML = '<img class="ov-icon" src="clock.png" alt="">时间到';
   document.getElementById('ov-sub').textContent =
     `捣蛋鬼把进度拖垮了,只完成 ${Math.round(p.pct*100)}%`;
   const btn = document.getElementById('ov-btn');
@@ -1273,8 +1443,14 @@ function loop() {
 
 // ---------- 关卡进度(本地存档) ----------
 let maxUnlocked = 0;   // 已解锁到的最高关索引
-const DEBUG_ALL_LEVELS = true;   // 调试:为 true 时所有关卡都可直接跳转(发布前改回 false)
+const DEBUG_ALL_LEVELS = false;   // 调试:为 true 时所有关卡都可直接跳转(发布前改回 false)
 function loadProgress() {
+  // URL 带 ?reset(或 #reset)时清空解锁进度,方便测试从头开始
+  if (/(?:[?&#])reset\b/.test(location.search + location.hash)) {
+    try { localStorage.removeItem('sebricks_progress'); } catch (e) {}
+    maxUnlocked = 0;
+    return;
+  }
   try { const v = parseInt(localStorage.getItem('sebricks_progress')); if (!isNaN(v)) maxUnlocked = v; } catch (e) {}
 }
 function saveProgress() {
@@ -1289,7 +1465,12 @@ function renderLevelBar() {
     const c = document.createElement('button');
     c.className = 'lvchip' + (ok ? '' : ' locked') + (i === levelIdx ? ' current' : '');
     c.title = ok ? lv.name : '通关上一关后解锁';
-    c.innerHTML = `<span class="ico">${ok ? Array.from(lv.name)[0] : '🔒'}</span>
+    const ICON_IMG = { 0: 'tianchong.png', 1: 'broke.png', 2: 'spread.png', 3: 'xietiao.png', 4: 'distance.png', 5: 'dk.png', 6: 'freedom.png' };
+    let icoHtml;
+    if (!ok) icoHtml = '🔒';
+    else if (ICON_IMG[i]) icoHtml = `<img class="ico-img" src="${ICON_IMG[i]}" alt="">`;
+    else icoHtml = Array.from(lv.name)[0];
+    c.innerHTML = `<span class="ico">${icoHtml}</span>
       <span class="n">第${i+1}关</span>`;
     if (ok) c.onclick = () => { levelIdx = i; loadLevel(i); };
     bar.appendChild(c);
@@ -1322,6 +1503,19 @@ loadProgress();
 document.getElementById('reset').onclick = () => loadLevel(levelIdx);
 document.getElementById('pause').onclick = togglePause;
 document.getElementById('pausemask').onclick = togglePause;
+// 全局静音开关
+(function setupMute() {
+  const btn = document.getElementById('mute');
+  if (!btn) return;
+  try { soundMuted = localStorage.getItem('sebricks_muted') === '1'; } catch (e) {}
+  const sync = () => { btn.textContent = soundMuted ? '🔇 静音' : '🔊 音效'; btn.classList.toggle('muted', soundMuted); };
+  sync();
+  btn.onclick = () => {
+    soundMuted = !soundMuted;
+    try { localStorage.setItem('sebricks_muted', soundMuted ? '1' : '0'); } catch (e) {}
+    sync();
+  };
+})();
 // 空格键暂停 / 继续(仅在游戏进行或暂停时生效,避免开场弹窗/倒计时期间误触)
 window.addEventListener('keydown', e => {
   if (e.code === 'Space' || e.key === ' ') {
@@ -1360,11 +1554,21 @@ levelIdx = 0;
   window.addEventListener('touchstart', unmute);
 
   // 播放结束 → 显示开始界面;视频停在最后一帧作为背景
+  const skipBtn = document.getElementById('splash-skip');
   let revealed = false;
-  const reveal = () => { if (revealed) return; revealed = true; if (ui) ui.classList.add('show'); };
+  const reveal = () => {
+    if (revealed) return; revealed = true;
+    if (ui) ui.classList.add('show');
+    if (skipBtn) skipBtn.style.display = 'none';   // 显示开始界面后隐藏"跳过"按钮
+  };
   vid.addEventListener('ended', reveal);
   // 兜底:视频缺失/无法播放时也能进入游戏
   vid.addEventListener('error', reveal);
+  // 右上角"跳过动画":直接跳到结尾并显示开始界面
+  if (skipBtn) skipBtn.addEventListener('click', () => {
+    try { vid.pause(); } catch (e) {}
+    reveal();
+  });
   // 二次兜底:按视频时长 + 缓冲做超时,防止 ended 事件偶发丢失导致按钮永不出现
   vid.addEventListener('loadedmetadata', () => {
     if (isFinite(vid.duration) && vid.duration > 0) {
