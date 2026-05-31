@@ -1680,22 +1680,37 @@ levelIdx = 0;
   const vid = document.getElementById('splash-video');
   const ui = document.getElementById('splash-ui');
   if (!vid) return;
+  vid.playbackRate = 1.5;                 // 1.5 倍速播放开屏视频
+  vid.addEventListener('ratechange', () => { if (vid.playbackRate !== 1.5) vid.playbackRate = 1.5; });
+  vid.addEventListener('loadedmetadata', () => { vid.playbackRate = 1.5; });
   vid.muted = true;                       // 先静音,确保自动播放不被拦截
   vid.play().catch(() => {});
-  // 注意:鼠标移动(mousemove)不算"有效用户手势",在 mousemove 里取消静音会被浏览器
-  // 当成"无手势的有声播放"而暂停视频。因此只用 点击/触摸/按键 这类真实手势取消静音。
-  const unmute = () => {
-    vid.muted = false; vid.volume = 1;
-    vid.play().catch(() => {              // 万一仍被拦截,退回静音继续播放,保证画面不卡住
-      vid.muted = true; vid.play().catch(() => {});
-    });
-    window.removeEventListener('pointerdown', unmute);
-    window.removeEventListener('keydown', unmute);
-    window.removeEventListener('touchstart', unmute);
+  // 取消静音的触发:点击/触摸/按键是浏览器认可的"有效手势",一定能出声;
+  // 鼠标移动(mousemove)不算有效手势,尝试出声可能被拦截——失败时绝不移除手势监听,
+  // 以保证后续真正的点击/按键仍能成功出声(否则会出现"动了鼠标后点击也不出声")。
+  const cleanup = () => {
+    window.removeEventListener('pointerdown', onGesture);
+    window.removeEventListener('keydown', onGesture);
+    window.removeEventListener('touchstart', onGesture);
+    window.removeEventListener('mousemove', onMove);
   };
-  window.addEventListener('pointerdown', unmute);
-  window.addEventListener('keydown', unmute);
-  window.addEventListener('touchstart', unmute);
+  const onGesture = () => {               // 真实手势:直接出声并清理监听
+    vid.muted = false; vid.volume = 1;
+    vid.play().catch(() => { vid.muted = true; vid.play().catch(() => {}); });
+    cleanup();
+  };
+  const onMove = () => {                  // 鼠标移动:尝试出声;成功才清理,失败保留手势监听
+    vid.muted = false; vid.volume = 1;
+    const p = vid.play();
+    if (p && p.then) {
+      p.then(() => { if (!vid.muted && !vid.paused) cleanup(); })
+       .catch(() => { vid.muted = true; vid.play().catch(() => {}); });   // 退回静音续播,等真正的点击
+    }
+  };
+  window.addEventListener('pointerdown', onGesture);
+  window.addEventListener('keydown', onGesture);
+  window.addEventListener('touchstart', onGesture);
+  window.addEventListener('mousemove', onMove);
 
   // 播放结束 → 显示开始界面;视频停在最后一帧作为背景
   const skipBtn = document.getElementById('splash-skip');
