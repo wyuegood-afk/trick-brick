@@ -188,20 +188,26 @@
   /* ---------- 开屏(素描手绘风) ---------- */
   #splash {
     position: fixed; inset: 0; z-index: 200;
-    background-color: #f4efe1;
-    background-image: repeating-linear-gradient(#f4efe1 0 27px, #e7dfca 27px 28px);
+    background-color: #000;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 20px; color: #2a2a2a; text-align: center;
     transition: opacity .5s ease;
   }
   #splash.hide { opacity: 0; pointer-events: none; }
-  #splash-people { width: min(88vw, 580px); height: auto; overflow: visible; }
-  #splash-people .ln { stroke:#2a2a2a; stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; fill:none; }
-  #splash-people .head { stroke:#2a2a2a; stroke-width:2.4; }
-  #splash-people .eye { fill:#2a2a2a; stroke:none; }
-  #splash-people .fist { fill:#2a2a2a; stroke:none; }
-  .head.pr{ fill:#e85d75aa } .head.py{ fill:#ffce4eaa } .head.pg{ fill:#6dd86daa }
-  .head.pb{ fill:#5d9ce8aa } .head.pk{ fill:#7c7c7caa }
+  /* 全屏铺满播放的开屏视频 */
+  #splash-video {
+    position: fixed; inset: 0; width: 100%; height: 100%;
+    object-fit: cover; background: #000; z-index: 0;
+  }
+  /* 视频播完后才浮现的标题与按钮(初始隐藏) */
+  #splash-ui {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 20px;
+    padding: 30px 40px; border-radius: 18px;
+    background: rgba(244,239,225,.86); box-shadow: 0 8px 40px rgba(0,0,0,.45);
+    opacity: 0; pointer-events: none; transition: opacity .6s ease;
+  }
+  #splash-ui.show { opacity: 1; pointer-events: auto; }
   .splash-title {
     font-family: "STKaiti","KaiTi","楷体",cursive;
     font-size: 54px; font-weight: 800; letter-spacing: 4px; color:#222;
@@ -270,79 +276,14 @@
   </div>
 </div>
 <div id="splash">
-  <svg id="splash-people" viewBox="0 0 560 120" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <filter id="rough">
-        <feTurbulence type="fractalNoise" baseFrequency="0.016" numOctaves="2" seed="2" result="n">
-          <animate attributeName="seed" values="1;4;7;1" dur="0.5s" repeatCount="indefinite"/>
-        </feTurbulence>
-        <feDisplacementMap in="SourceGraphic" in2="n" scale="3.2"/>
-      </filter>
-    </defs>
-    <!-- 红:向右冲拳 -->
-    <g transform="translate(60,6)"><g filter="url(#rough)">
-      <animateTransform attributeName="transform" type="rotate" values="0 0 96;5 0 96;0 0 96" dur="0.9s" repeatCount="indefinite"/>
-      <circle class="head pr" cx="0" cy="16" r="15"/>
-      <circle class="eye" cx="-5" cy="14" r="1.7"/><circle class="eye" cx="5" cy="14" r="1.7"/>
-      <path class="ln" d="M-6 21 Q0 25 6 21"/>
-      <line class="ln" x1="0" y1="31" x2="0" y2="62"/>
-      <g><line class="ln" x1="0" y1="62" x2="-13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="-7 0 62;9 0 62;-7 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="62" x2="13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="7 0 62;-9 0 62;7 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="-18" y2="52"/><animateTransform attributeName="transform" type="rotate" values="0 0 36;16 0 36;0 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="20" y2="44"/><circle class="fist" cx="20" cy="44" r="4.5"/><animateTransform attributeName="transform" type="rotate" values="6 0 36;-50 0 36;6 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-    </g></g>
-    <!-- 黄:被打,后仰举手 -->
-    <g transform="translate(170,6)"><g filter="url(#rough)">
-      <animateTransform attributeName="transform" type="rotate" values="0 0 96;13 0 96;0 0 96" dur="0.9s" repeatCount="indefinite"/>
-      <circle class="head py" cx="0" cy="16" r="15"/>
-      <circle class="eye" cx="-5" cy="14" r="1.7"/><circle class="eye" cx="5" cy="14" r="1.7"/>
-      <path class="ln" d="M-6 24 Q0 20 6 24"/>
-      <line class="ln" x1="0" y1="31" x2="0" y2="62"/>
-      <g><line class="ln" x1="0" y1="62" x2="-12" y2="96"/><animateTransform attributeName="transform" type="rotate" values="-4 0 62;5 0 62;-4 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="62" x2="13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="4 0 62;-5 0 62;4 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="-19" y2="46"/><animateTransform attributeName="transform" type="rotate" values="-12 0 36;-38 0 36;-12 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="19" y2="46"/><animateTransform attributeName="transform" type="rotate" values="12 0 36;38 0 36;12 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-    </g></g>
-    <!-- 绿:中间起哄蹦跳 -->
-    <g transform="translate(280,6)"><g filter="url(#rough)">
-      <animateTransform attributeName="transform" type="translate" values="0 0;0 -16;0 0" dur="0.8s" repeatCount="indefinite"/>
-      <circle class="head pg" cx="0" cy="16" r="15"/>
-      <circle class="eye" cx="-5" cy="14" r="1.7"/><circle class="eye" cx="5" cy="14" r="1.7"/>
-      <path class="ln" d="M-6 20 Q0 26 6 20"/>
-      <line class="ln" x1="0" y1="31" x2="0" y2="62"/>
-      <g><line class="ln" x1="0" y1="62" x2="-15" y2="94"/><animateTransform attributeName="transform" type="rotate" values="-14 0 62;-8 0 62;-14 0 62" dur="0.8s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="62" x2="15" y2="94"/><animateTransform attributeName="transform" type="rotate" values="14 0 62;8 0 62;14 0 62" dur="0.8s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="-18" y2="40"/><animateTransform attributeName="transform" type="rotate" values="-22 0 36;-40 0 36;-22 0 36" dur="0.8s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="18" y2="40"/><animateTransform attributeName="transform" type="rotate" values="22 0 36;40 0 36;22 0 36" dur="0.8s" repeatCount="indefinite"/></g>
-    </g></g>
-    <!-- 蓝:被打,后仰举手 -->
-    <g transform="translate(390,6)"><g filter="url(#rough)">
-      <animateTransform attributeName="transform" type="rotate" values="0 0 96;-13 0 96;0 0 96" dur="0.9s" repeatCount="indefinite"/>
-      <circle class="head pb" cx="0" cy="16" r="15"/>
-      <circle class="eye" cx="-5" cy="14" r="1.7"/><circle class="eye" cx="5" cy="14" r="1.7"/>
-      <path class="ln" d="M-6 24 Q0 20 6 24"/>
-      <line class="ln" x1="0" y1="31" x2="0" y2="62"/>
-      <g><line class="ln" x1="0" y1="62" x2="-13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="-4 0 62;5 0 62;-4 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="62" x2="12" y2="96"/><animateTransform attributeName="transform" type="rotate" values="4 0 62;-5 0 62;4 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="-19" y2="46"/><animateTransform attributeName="transform" type="rotate" values="-12 0 36;-38 0 36;-12 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="19" y2="46"/><animateTransform attributeName="transform" type="rotate" values="12 0 36;38 0 36;12 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-    </g></g>
-    <!-- 黑:向左冲拳 -->
-    <g transform="translate(500,6)"><g filter="url(#rough)">
-      <animateTransform attributeName="transform" type="rotate" values="0 0 96;-5 0 96;0 0 96" dur="0.9s" repeatCount="indefinite"/>
-      <circle class="head pk" cx="0" cy="16" r="15"/>
-      <circle class="eye" cx="-5" cy="14" r="1.7"/><circle class="eye" cx="5" cy="14" r="1.7"/>
-      <path class="ln" d="M-6 21 Q0 25 6 21"/>
-      <line class="ln" x1="0" y1="31" x2="0" y2="62"/>
-      <g><line class="ln" x1="0" y1="62" x2="-13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="-7 0 62;9 0 62;-7 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="62" x2="13" y2="96"/><animateTransform attributeName="transform" type="rotate" values="7 0 62;-9 0 62;7 0 62" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="-20" y2="44"/><circle class="fist" cx="-20" cy="44" r="4.5"/><animateTransform attributeName="transform" type="rotate" values="-6 0 36;50 0 36;-6 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-      <g><line class="ln" x1="0" y1="36" x2="18" y2="52"/><animateTransform attributeName="transform" type="rotate" values="0 0 36;-16 0 36;0 0 36" dur="0.9s" repeatCount="indefinite"/></g>
-    </g></g>
-  </svg>
-  <div class="splash-title">会捣乱的积木</div>
-  <div class="splash-sub">每块积木都有自己的脾气——🔴会烧邻格、🟢会蔓延、🔵会腐蚀、⚫会护邻。<br>趁它们捣乱之前，照着图纸拼出订单！</div>
-  <button id="splash-start">▶ 开始游戏</button>
+  <video id="splash-video" autoplay muted playsinline preload="auto">
+    <source src="welcome.mp4" type="video/mp4">
+  </video>
+  <div id="splash-ui">
+    <div class="splash-title">会捣乱的积木</div>
+    <div class="splash-sub">每块积木都有自己的脾气——🔴会烧邻格、🟢会蔓延、🔵会腐蚀、⚫会护邻。<br>趁它们捣乱之前，照着图纸拼出订单！</div>
+    <button id="splash-start">▶ 开始游戏</button>
+  </div>
 </div>
 
 <script>
@@ -511,6 +452,7 @@ function loadLevel(idx) {
   lastSpread = perfNow();
   burnedOnce = false;
   spreadCounter = 0;
+  shatters = [];   // 清空上一关残留的碎块动画
   const introTitle = (LEVEL_INTROS[idx] && LEVEL_INTROS[idx].title) || lv.name;
   document.getElementById('order').textContent = `第 ${idx+1}/${LEVELS.length} 关 - ${introTitle}`;
   document.getElementById('overlay').style.display = 'none';
@@ -579,7 +521,221 @@ function startCountdown() {
 
 function perfNow() { return performance.now(); }
 
-// ---------- 放置音效 ----------
+// ---------- 烧裂碎块动画 ----------
+let shatters = [];      // 飞散的碎块粒子
+let lastFrame = perfNow();
+function spawnShatter(r, c, type) {
+  const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
+  const color = (type === 'rainbow') ? '#ffce4e' : (COLORS[type] || '#888');
+  const N = 11;          // 每格碎块数量
+  for (let i = 0; i < N; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 40 + Math.random() * 140;       // 初速(px/s)
+    shatters.push({
+      x: cx + (Math.random() - 0.5) * CELL * 0.5,
+      y: cy + (Math.random() - 0.5) * CELL * 0.5,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp - 40,             // 略微向上迸射
+      size: 4 + Math.random() * 7,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 12,
+      life: 0,
+      ttl: 0.45 + Math.random() * 0.3,         // 存活时长(秒)
+      color
+    });
+  }
+  // 中心一闪火光
+  shatters.push({ flash: true, x: cx, y: cy, life: 0, ttl: 0.22 });
+  // 向上飘散的烟雾
+  const S = 5;
+  for (let i = 0; i < S; i++) {
+    shatters.push({
+      kind: 'smoke',
+      x: cx + (Math.random() - 0.5) * CELL * 0.4,
+      y: cy + (Math.random() - 0.5) * CELL * 0.3,
+      vx: (Math.random() - 0.5) * 24,
+      vy: -28 - Math.random() * 36,            // 上升
+      size: 7 + Math.random() * 8,
+      grow: 18 + Math.random() * 16,           // 每秒膨胀像素
+      life: 0,
+      ttl: 0.7 + Math.random() * 0.5,
+      gray: 90 + (Math.random() * 60 | 0)      // 烟雾灰度
+    });
+  }
+}
+// 蓝砖腐蚀消失:向上冒泡 + 整体淡出溶解
+function spawnDissolve(r, c, type) {
+  const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
+  const color = COLORS[type] || '#5d9ce8';
+  const N = 10;
+  for (let i = 0; i < N; i++) {
+    shatters.push({
+      kind: 'bubble',
+      x: cx + (Math.random() - 0.5) * (CELL - 10),
+      y: cy + (Math.random() - 0.5) * (CELL - 10),
+      vx: (Math.random() - 0.5) * 20,
+      vy: -30 - Math.random() * 50,            // 上浮
+      size: 3 + Math.random() * 5,
+      phase: Math.random() * Math.PI * 2,
+      life: 0,
+      ttl: 0.55 + Math.random() * 0.35,
+      color
+    });
+  }
+}
+// 绿砖蔓延占格:冒出的扩散绿环 + 几点向外迸的绿芽
+function spawnSprout(r, c) {
+  const cx = c * CELL + CELL / 2, cy = r * CELL + CELL / 2;
+  const color = COLORS.green;
+  shatters.push({ kind: 'ring', x: cx, y: cy, maxR: CELL * 0.55, color, life: 0, ttl: 0.4 });
+  const N = 6;
+  for (let i = 0; i < N; i++) {
+    const ang = Math.random() * Math.PI * 2;
+    const sp = 30 + Math.random() * 60;
+    shatters.push({
+      x: cx, y: cy,
+      vx: Math.cos(ang) * sp,
+      vy: Math.sin(ang) * sp - 20,
+      size: 3 + Math.random() * 4,
+      rot: Math.random() * Math.PI,
+      vrot: (Math.random() - 0.5) * 10,
+      life: 0,
+      ttl: 0.3 + Math.random() * 0.2,
+      color
+    });
+  }
+}
+function updateShatters(dt) {
+  if (!shatters.length) return;
+  const G = 520;         // 重力(px/s^2)
+  for (const p of shatters) {
+    p.life += dt;
+    if (p.flash || p.kind === 'ring') continue;
+    if (p.kind === 'bubble') {                 // 气泡上浮 + 轻微左右摇摆
+      p.vy *= 0.99;
+      p.vx += Math.sin(p.life * 9 + p.phase) * 10 * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      continue;
+    }
+    if (p.kind === 'smoke') {                  // 烟雾:上升、减速、膨胀
+      p.vy *= 0.96;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.size += p.grow * dt;
+      continue;
+    }
+    p.vy += G * dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.rot += p.vrot * dt;
+    p.vx *= 0.98;        // 轻微空气阻力
+  }
+  shatters = shatters.filter(p => p.life < p.ttl);
+}
+function drawShatters() {
+  for (const p of shatters) {
+    const k = 1 - p.life / p.ttl;              // 1→0 用于淡出
+    if (p.flash) {
+      const rad = CELL * 0.5 * (1 - k) + 4;
+      ctx.save();
+      ctx.globalAlpha = k * 0.7;
+      ctx.fillStyle = '#fff3c0';
+      ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      continue;
+    }
+    if (p.kind === 'ring') {                    // 绿砖扩散环
+      const rad = p.maxR * (1 - k) + 2;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, k) * 0.85;
+      ctx.strokeStyle = p.color;
+      ctx.lineWidth = 2.5 * k + 0.5;
+      ctx.beginPath(); ctx.arc(p.x, p.y, rad, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+    if (p.kind === 'smoke') {                   // 烧裂冒烟:柔和灰色烟团,渐扩渐淡
+      ctx.save();
+      const a = Math.max(0, k) * 0.4;
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+      grad.addColorStop(0, `rgba(${p.gray},${p.gray},${p.gray},${a})`);
+      grad.addColorStop(1, `rgba(${p.gray},${p.gray},${p.gray},0)`);
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      continue;
+    }
+    if (p.kind === 'bubble') {                  // 蓝砖溶解气泡
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, k) * 0.85;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * (0.5 + 0.5 * k), 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      continue;
+    }
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, k);
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.rot);
+    ctx.fillStyle = p.color;
+    const s = p.size * (0.6 + 0.4 * k);
+    ctx.fillRect(-s / 2, -s / 2, s, s);
+    ctx.restore();
+  }
+  ctx.globalAlpha = 1;
+}
+// 逐渐扩展的烧裂裂纹 + 焦化变暗 + 边缘余烬微光(p.burn: 0→1)
+function drawCracks(x, y, cell) {
+  const b = Math.min(1, cell.burn);
+  const cx = x + CELL / 2, cy = y + CELL / 2;
+  const inset = 4, w = CELL - 8;
+  // 基于 crackSeed 的确定性随机,保证同一块砖裂纹形态稳定
+  let s = cell.crackSeed || 1;
+  const rnd = () => { s = (s * 1664525 + 1013904223) & 0x7fffffff; return s / 0x7fffffff; };
+
+  ctx.save();
+  roundRect(x + inset, y + inset, w, w, 5); ctx.clip();
+
+  // ① 焦化:随烧裂加深的暗色覆盖
+  ctx.fillStyle = `rgba(40,20,10,${0.45 * b})`;
+  ctx.fillRect(x, y, CELL, CELL);
+
+  // ② 裂纹:从中心向外的几条折线,长度随 b 增长
+  const branches = 5;
+  const maxLen = w * 0.55;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < branches; i++) {
+    const baseAng = (i / branches) * Math.PI * 2 + rnd() * 0.6;
+    const len = maxLen * b * (0.6 + rnd() * 0.6);
+    let px = cx, py = cy, ang = baseAng;
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    const segs = 3;
+    for (let sgi = 0; sgi < segs; sgi++) {
+      ang += (rnd() - 0.5) * 0.9;
+      const sl = (len / segs);
+      px += Math.cos(ang) * sl;
+      py += Math.sin(ang) * sl;
+      ctx.lineTo(px, py);
+    }
+    ctx.strokeStyle = `rgba(20,10,5,${0.55 * Math.min(1, b * 1.3)})`;
+    ctx.lineWidth = 2.2 * b + 0.5;
+    ctx.stroke();
+    // 裂缝里透出的暗红余烬
+    ctx.strokeStyle = `rgba(255,90,30,${0.5 * b})`;
+    ctx.lineWidth = (2.2 * b + 0.5) * 0.4;
+    ctx.stroke();
+  }
+
+  // ③ 临碎裂时整体微微发红发亮 + 抖动感的边缘高光
+  if (b > 0.55) {
+    const g = (b - 0.55) / 0.45;
+    ctx.fillStyle = `rgba(255,120,40,${0.25 * g})`;
+    ctx.fillRect(x, y, CELL, CELL);
+  }
+  ctx.restore();
+}
 let audioCtx;
 function playPlaceSound() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -800,41 +956,54 @@ function flashHint(t) {
 
 // ---------- 副作用结算 ----------
 const ORTHO = [[-1,0],[1,0],[0,-1],[0,1]];
-// 黄砖烧裂:每块黄砖每隔 burnMs 只烧掉 1 个随机相邻砖(黑砖及其保护范围免疫)
-function doBurn() {
-  // 放够 burnAfter 个黄砖后才开始烧裂(降低开局难度;默认 0 = 立即烧)
-  const burnAfter = LEVELS[levelIdx].burnAfter || 0;
+// 烧裂(连续过程):凡是紧贴"火砖"(type yellow,显示红色)的可燃砖,会从挨近的那一刻
+//   起按时间逐渐积累裂纹(cell.burn 0→1),裂满才碎裂消失;相邻有黑砖保护或火砖移开
+//   时,裂纹会缓慢自愈。被多块火砖夹住时碎裂更快。
+function updateBurn(dt) {
+  const lv = LEVELS[levelIdx];
+  // 放够 burnAfter 个火砖后才开始烧裂(降低开局难度;默认 0 = 立即烧)
+  const burnAfter = lv.burnAfter || 0;
   if (burnAfter > 0) {
     let yc = 0;
     forEach((r, c, cell) => { if (cell && cell.type === 'yellow') yc++; });
     if (yc < burnAfter) return;
   }
-  const burnRate = LEVELS[levelIdx].burnRate || 0.15;
-  const isProtected = (r, c) => {
+  const restrict = burnableSet && burnableSet.size > 0;   // 本关是否限定只烧指定格子
+  const base = burnedOnce ? (lv.burnSlowMs || lv.burnMs || TICK_MS) : (lv.burnMs || TICK_MS);
+  const crackMs = base * 1.4;        // 从挨近到完全碎裂的基准时长
+  const healMs  = base * 2.2;        // 离开火源后自愈所需时长
+  const removed = [];
+  forEach((r, c, cell) => {
+    if (!cell || cell.type === 'yellow' || cell.type === 'black') return;   // 火砖/黑砖不被烧
+    if (restrict && !burnableSet.has(r + ',' + c)) return;
+    // 统计相邻火砖数 & 是否被黑砖保护
+    let fire = 0, guarded = false;
     for (const [dr, dc] of ORTHO) {
       const nr = r + dr, nc = c + dc;
-      if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc] && grid[nr][nc].type === 'black') return true;
+      if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue;
+      const t = grid[nr][nc];
+      if (!t) continue;
+      if (t.type === 'black') guarded = true;
+      if (t.type === 'yellow') fire++;
     }
-    return false;
-  };
-  const restrict = burnableSet && burnableSet.size > 0;   // 本关是否限定只烧指定格子
-  const toBurn = [];
-  forEach((r, c, cell) => {
-    if (cell && cell.type === 'yellow' && Math.random() < burnRate) {
-      const targets = [];
-      neigh(r, c, (nr, nc) => {
-        const t = grid[nr][nc];
-        if (t && t.type !== 'black' && t.type !== 'yellow' && !isProtected(nr, nc)
-            && (!restrict || burnableSet.has(nr + ',' + nc))) targets.push([nr, nc]);
-      });
-      if (targets.length) {                                   // 每块黄砖一次只烧 1 个
-        const [br, bc] = targets[Math.floor(Math.random() * targets.length)];
-        toBurn.push([br, bc]);
+    if (fire > 0 && !guarded) {
+      if (!cell.burn) {                         // 首次被点燃:固定裂纹形态与个体速度差异
+        cell.burn = 0;
+        cell.crackSeed = (Math.random() * 1e9) | 0;
+        cell.crackMul = 0.8 + Math.random() * 0.5;
       }
+      cell.burn += dt * 1000 / (crackMs * cell.crackMul) * fire;
+      if (cell.burn >= 1) removed.push([r, c]);
+    } else if (cell.burn) {                     // 离开火源:缓慢自愈
+      cell.burn -= dt * 1000 / healMs;
+      if (cell.burn < 0) cell.burn = 0;
     }
   });
-  toBurn.forEach(([r, c]) => grid[r][c] = null);
-  if (toBurn.length > 0) burnedOnce = true;   // 标记已发生首次烧裂
+  if (removed.length) {
+    removed.forEach(([r, c]) => { if (grid[r][c]) spawnShatter(r, c, grid[r][c].type); grid[r][c] = null; });
+    burnedOnce = true;   // 标记已发生首次烧裂(之后烧裂节奏变慢)
+    buildPanel();
+  }
 }
 
 function runTick() {
@@ -842,7 +1011,7 @@ function runTick() {
   forEach((r,c,cell) => {
     if (cell && cell.type === 'blue') {
       cell.age++;
-      if (cell.age >= 3) grid[r][c] = null;
+      if (cell.age >= 3) { spawnDissolve(r, c, 'blue'); grid[r][c] = null; }
     }
   });
 }
@@ -855,7 +1024,7 @@ function runTick() {
 //   其他方向(向下/向外)蔓延很慢——制造"不赶紧填就被绿吞掉"的压力。
 function doSpread() {
   const lv = LEVELS[levelIdx];
-  const plant = (nr,nc) => { if (!grid[nr][nc]) grid[nr][nc] = { type:'green', byPlayer:false, age:0, protect:false }; };
+  const plant = (nr,nc) => { if (!grid[nr][nc]) { grid[nr][nc] = { type:'green', byPlayer:false, age:0, protect:false }; spawnSprout(nr, nc); } };
   // 只蔓延到空格;任何已填充的格子(含其它颜色和绿砖)都不被覆盖、不变色
   const takeable = (nr,nc) => !grid[nr][nc];
 
@@ -950,6 +1119,7 @@ function draw() {
     // 已放置的砖
     if (f) {
       drawBrick(x, y, f.type, f.age);
+      if (f.burn > 0) drawCracks(x, y, f);     // 正在被烤裂:画逐渐扩展的裂纹
       // 填对了不描边;放错颜色(含绿砖蔓延占错格)时,用该格应有的正确颜色描边提示
       const correct = t && (f.type === t || f.type === 'rainbow');
       if (t && !correct) {
@@ -970,6 +1140,8 @@ function draw() {
     ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 2;
     ctx.strokeRect(mouse.c*CELL+1, mouse.r*CELL+1, CELL-2, CELL-2);
   }
+  // 烧裂碎块(画在最上层)
+  drawShatters();
 }
 function drawBrick(x,y,type,age) {
   // 有对应图片且已加载 → 用图片绘制(裁切成圆角方块)
@@ -1080,17 +1252,21 @@ function showLose() {
 
 // ---------- 主循环 ----------
 function loop() {
+  // 帧间隔(秒);暂停时冻结,切后台回来不跳帧
+  const now = perfNow();
+  let dt = (now - lastFrame) / 1000;
+  lastFrame = now;
+  if (dt > 0.05) dt = 0.05;
+
   if (phase === 'play') {
     if (perfNow() - lastTick >= TICK_MS) { runTick(); lastTick = perfNow(); buildPanel(); }
     const spreadMs = LEVELS[levelIdx].spreadMs || TICK_MS;
     if (perfNow() - lastSpread >= spreadMs) { doSpread(); lastSpread = perfNow(); buildPanel(); }
-    const burnInterval = burnedOnce
-      ? (LEVELS[levelIdx].burnSlowMs || LEVELS[levelIdx].burnMs || TICK_MS)
-      : (LEVELS[levelIdx].burnMs || TICK_MS);
-    if (perfNow() - lastBurn >= burnInterval) { doBurn(); lastBurn = perfNow(); buildPanel(); }
+    updateBurn(dt);                 // 烧裂改为逐帧连续积累裂纹
     updateHUD();
     checkEnd();
   }
+  if (phase !== 'paused') updateShatters(dt);
   draw();
   requestAnimationFrame(loop);
 }
@@ -1159,8 +1335,47 @@ document.getElementById('intro-btn').onclick = () => beginLevel(levelIdx);
 
 levelIdx = 0;
 // 开屏:点击"开始游戏"后才进入第一关
+// 开屏视频:全屏铺满播放一次,播完才浮现"开始游戏"等界面。
+// 浏览器禁止"带声音自动播放",故先静音自动播放保证画面一定动,
+// 一旦用户有任意交互(移动/点击/触摸/按键)立即取消静音。
+(function setupSplash() {
+  const vid = document.getElementById('splash-video');
+  const ui = document.getElementById('splash-ui');
+  if (!vid) return;
+  vid.muted = true;                       // 先静音,确保自动播放不被拦截
+  vid.play().catch(() => {});
+  // 注意:鼠标移动(mousemove)不算"有效用户手势",在 mousemove 里取消静音会被浏览器
+  // 当成"无手势的有声播放"而暂停视频。因此只用 点击/触摸/按键 这类真实手势取消静音。
+  const unmute = () => {
+    vid.muted = false; vid.volume = 1;
+    vid.play().catch(() => {              // 万一仍被拦截,退回静音继续播放,保证画面不卡住
+      vid.muted = true; vid.play().catch(() => {});
+    });
+    window.removeEventListener('pointerdown', unmute);
+    window.removeEventListener('keydown', unmute);
+    window.removeEventListener('touchstart', unmute);
+  };
+  window.addEventListener('pointerdown', unmute);
+  window.addEventListener('keydown', unmute);
+  window.addEventListener('touchstart', unmute);
+
+  // 播放结束 → 显示开始界面;视频停在最后一帧作为背景
+  let revealed = false;
+  const reveal = () => { if (revealed) return; revealed = true; if (ui) ui.classList.add('show'); };
+  vid.addEventListener('ended', reveal);
+  // 兜底:视频缺失/无法播放时也能进入游戏
+  vid.addEventListener('error', reveal);
+  // 二次兜底:按视频时长 + 缓冲做超时,防止 ended 事件偶发丢失导致按钮永不出现
+  vid.addEventListener('loadedmetadata', () => {
+    if (isFinite(vid.duration) && vid.duration > 0) {
+      setTimeout(reveal, (vid.duration + 0.8) * 1000);
+    }
+  });
+})();
 document.getElementById('splash-start').onclick = () => {
   const sp = document.getElementById('splash');
+  const vid = document.getElementById('splash-video');
+  if (vid) { vid.pause(); }
   sp.classList.add('hide');
   setTimeout(() => sp.remove(), 500);
   loadLevel(0);
