@@ -11,7 +11,8 @@
     background: url('background.png') center/cover no-repeat fixed;
     color: #eee; overflow: hidden;
   }
-  #wrap { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; min-height: 100vh; gap: 12px; padding: 16px 0; }
+  #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+  #game { display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
   #main { display: flex; align-items: flex-start; gap: 14px; }
 
   /* 左侧材料库(素描手绘风:纸片底 + 柔墨描边 + 楷体) */
@@ -282,6 +283,7 @@
 </head>
 <body>
 <div id="wrap">
+ <div id="game">
   <div id="topbar">
     <div class="stat" id="order">第 1/7 关</div>
     <div class="stat" id="timer"><img class="timer-ico" src="clock.png" alt=""> <b id="timer-num">60</b>s</div>
@@ -305,6 +307,7 @@
       <div id="lvbar"></div>
     </div>
   </div>
+ </div>
   <div id="overlay">
     <div class="ov-card">
       <h1 id="ov-title"></h1>
@@ -324,7 +327,7 @@
 </div>
 <div id="splash">
   <video id="splash-video" autoplay muted playsinline preload="auto">
-    <source src="welcome.mp4" type="video/mp4">
+    <source src="http://120.55.112.108/welcome.mp4" type="video/mp4">
   </video>
   <div id="splash-loading">
     <div class="ld-bricks">
@@ -535,6 +538,7 @@ function loadLevel(idx) {
   countdownToken++;      // 取消任何进行中的倒计时
   document.getElementById('countdown').style.display = 'none';
   showLevelIntro(idx);   // 先弹出本关说明,玩家点"开始本关"后才真正开始
+  if (typeof fitGame === 'function') fitGame();   // 关卡内容可能改变尺寸,重新适配缩放
 }
 
 // ---------- 关卡开场说明弹窗 ----------
@@ -1197,15 +1201,16 @@ function playFailSound() {
 // ---------- 放置 / 拆除 ----------
 cv.addEventListener('mousemove', e => {
   const b = cv.getBoundingClientRect();
-  mouse.c = Math.floor((e.clientX - b.left) / CELL);
-  mouse.r = Math.floor((e.clientY - b.top) / CELL);
+  // 画布可能被整体缩放,用实际渲染尺寸换算格子坐标
+  mouse.c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
+  mouse.r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
 });
 cv.addEventListener('mouseleave', () => { mouse.c = mouse.r = -1; });
 cv.addEventListener('click', e => {
   if (phase !== 'play') return;
   const b = cv.getBoundingClientRect();
-  const c = Math.floor((e.clientX - b.left) / CELL);
-  const r = Math.floor((e.clientY - b.top) / CELL);
+  const c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
+  const r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
   if (!inBounds(r, c)) return;   // 非可填充格子禁用,不可点击
   const cell = grid[r][c];
@@ -1846,6 +1851,24 @@ async function fetchLevelConfig() {
   }
 }
 
+// ---------- 响应式适配:把游戏整体等比缩放并居中,适应任意屏幕 ----------
+function fitGame() {
+  const game = document.getElementById('game');
+  if (!game) return;
+  game.style.transform = 'none';            // 先复位,量出原始尺寸
+  const w = game.offsetWidth, h = game.offsetHeight;
+  if (!w || !h) return;
+  const margin = 24;                        // 四周留白
+  const sx = (window.innerWidth  - margin) / w;
+  const sy = (window.innerHeight - margin) / h;
+  let scale = Math.min(sx, sy);
+  scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍,避免过大
+  if (scale < 0.3) scale = 0.3;             // 极小屏下限
+  game.style.transform = 'scale(' + scale + ')';
+}
+window.addEventListener('resize', fitGame);
+window.addEventListener('orientationchange', fitGame);
+
 document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
   const vid = document.getElementById('splash-video');
@@ -1856,6 +1879,7 @@ document.getElementById('splash-start').onclick = async () => {
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
+  fitGame();               // 进入游戏后按屏幕大小缩放居中
   loop();
 };
 </script>
