@@ -327,6 +327,7 @@
 </div>
 <div id="splash">
   <video id="splash-video" autoplay muted playsinline preload="auto">
+    <source src="https://mt-muses.cn-beijing.oss.aliyuncs.com/pro-files/1780287153644__e22ff8c6-1622-489a-8d46-f078115d8f88__welcome.mp4?AWSAccessKeyId=LTAI5tE6HeU95JBjPcTgemzR&amp;Expires=1780891964&amp;Signature=p3IhiqZ4W%2FdfU8wjqTFNEHjz2DA%3D&amp;response-content-disposition=attachment%3B%20filename%3Dwelcome.mp4" type="video/mp4">
     <source src="welcome.mp4" type="video/mp4">
   </video>
   <div id="splash-loading">
@@ -1765,6 +1766,21 @@ levelIdx = 0;
   vid.addEventListener('playing', hideLoading);
   vid.addEventListener('error', hideLoading);      // 视频失败也别一直转
   if (vid.readyState >= 2) hideLoading();           // 脚本执行时视频可能已就绪
+
+  // 兜底:远程视频(OSS 签名过期/弱网/访问失败)若拿不到数据,自动切回本地 welcome.mp4
+  let usedFallback = false;
+  const useLocalFallback = () => {
+    if (usedFallback) return;
+    usedFallback = true;
+    vid.innerHTML = '<source src="welcome.mp4" type="video/mp4">';   // 换成本地源
+    vid.load();
+    vid.muted = true;
+    vid.play().catch(() => {});
+  };
+  vid.addEventListener('error', useLocalFallback);  // 远程源加载出错 → 本地兜底
+  // 远程源 4 秒内还没拿到可播数据(连接挂起/签名失效等),也切本地
+  const remoteTimer = setTimeout(() => { if (vid.readyState < 2) useLocalFallback(); }, 4000);
+  vid.addEventListener('loadeddata', () => clearTimeout(remoteTimer), { once: true });
   setTimeout(hideLoading, 8000);                    // 极端弱网兜底:最多转 8 秒
   vid.playbackRate = 1.5;                 // 1.5 倍速播放开屏视频
   vid.addEventListener('ratechange', () => { if (vid.playbackRate !== 1.5) vid.playbackRate = 1.5; });
