@@ -284,7 +284,7 @@
 <div id="wrap">
   <div id="topbar">
     <div class="stat" id="order">第 1/7 关</div>
-    <div class="stat" id="timer"><img class="timer-ico" src="clock.png" alt=""> <b>60</b>s</div>
+    <div class="stat" id="timer"><img class="timer-ico" src="clock.png" alt=""> <b id="timer-num">60</b>s</div>
     <button class="stat" id="pause">⏸ 暂停</button>
     <button class="stat" id="reset">↻ 重置本关</button>
     <button class="stat" id="mute">🔊 音效</button>
@@ -1575,7 +1575,8 @@ function updateHUD() {
   document.querySelector('#progbar i').style.width = (p.pct*100) + '%';
   const left = Math.max(0, Math.ceil((deadline - perfNow())/1000));
   const tEl = document.getElementById('timer');
-  tEl.innerHTML = '<img class="timer-ico" src="clock.png" alt=""> <b>' + left + '</b>s';
+  const numEl = document.getElementById('timer-num');
+  if (numEl) numEl.textContent = left;          // 只更新数字,不重建 <img>,避免每帧重复请求 clock.png
   tEl.classList.toggle('low', left <= 10);
 }
 
