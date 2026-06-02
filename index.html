@@ -11,9 +11,13 @@
     background: url('background.png') center/cover no-repeat fixed;
     color: #eee; overflow: hidden;
   }
+  /* 桌面:原始 flex 居中(不变) */
   #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
   #game { display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
   #main { display: flex; align-items: flex-start; gap: 14px; }
+  /* 手机:改用 fixed + 绝对定位 translate 居中(配合旋转/缩放) */
+  body.mobile-landscape #wrap { position: fixed; inset: 0; display: block; min-height: 0; }
+  body.mobile-landscape #game { position: absolute; top: 50%; left: 50%; }
 
   /* 左侧材料库(素描手绘风:纸片底 + 柔墨描边 + 楷体) */
   #panel {
@@ -109,7 +113,7 @@
   .lvchip .ico { font-size: 20px; display: block; line-height: 1.2; }
   .lvchip .ico-img { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; display: inline-block; }
   .lvchip .n { font-size: 10px; opacity: .8; }
-  canvas { border-radius: 10px; background: transparent; cursor: pointer; }
+  canvas { border-radius: 10px; background: transparent; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   #hint {
     margin-top: 12px;
     background: rgba(255,253,245,.92); color: #3a352c; border: 1.5px solid #6b6354; box-shadow: 2px 2px 0 rgba(107,99,84,.4);
@@ -254,9 +258,11 @@
   #splash-loading {
     position: fixed; inset: 0; z-index: 5;
     background: #000;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    display: none;            /* 默认不显示(桌面保持原样,开场不带载入动画) */
+    flex-direction: column; align-items: center; justify-content: center; gap: 26px;
     transition: opacity .45s ease;
   }
+  body.mobile-landscape #splash-loading { display: flex; }   /* 仅手机显示载入动画 */
   #splash-loading.hide { opacity: 0; pointer-events: none; }
   .ld-bricks { display: flex; gap: 12px; }
   .ld-bricks span {
@@ -279,6 +285,68 @@
     35% { transform: translateY(-18px) rotate(-8deg); }
   }
   @keyframes ldDots { 0%{content:"";} 25%{content:"·";} 50%{content:"··";} 75%{content:"···";} }
+  /* 点击/触摸波纹反馈 */
+  .tap-ripple {
+    position: fixed; z-index: 250; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+    border-radius: 50%; pointer-events: none; border: 2px solid currentColor;
+    animation: tapRipple .45s ease-out forwards;
+  }
+  @keyframes tapRipple { from{transform:scale(.3);opacity:.9} to{transform:scale(1.8);opacity:0} }
+  /* 胜负全屏闪光 */
+  .fx-flash {
+    position: fixed; inset: 0; z-index: 240; pointer-events: none;
+    animation: fxFlash .5s ease-out forwards;
+  }
+  @keyframes fxFlash { from{opacity:.55} to{opacity:0} }
+  /* 仅小屏/横屏手机:弹窗字号与宽度自适应缩小(桌面不受影响,保持上面原始样式) */
+  @media (max-width: 820px), (max-height: 560px) {
+    #overlay .ov-card, #intro .intro-card {
+      width: min(92vw, 420px); max-height: 92vh; overflow-y: auto;
+      padding: clamp(16px,4vmin,30px) clamp(18px,5vmin,40px);
+    }
+    #splash-ui { max-width: min(92vw, 520px); max-height: 92vh; overflow-y: auto;
+      padding: clamp(16px,4vmin,30px) clamp(18px,5vmin,40px); gap: clamp(12px,2.5vmin,20px); }
+    #overlay h1 { font-size: clamp(22px, 6vmin, 40px); }
+    #overlay p { font-size: clamp(13px, 3vmin, 17px); line-height: 1.7; }
+    #overlay button, #intro-btn, #splash-start {
+      font-size: clamp(15px, 4vmin, 22px); padding: clamp(8px,2.2vmin,11px) clamp(26px,6vmin,44px);
+    }
+    #intro-title { font-size: clamp(19px, 5vmin, 32px); margin-bottom: clamp(8px,2vmin,16px); }
+    #intro-desc { font-size: clamp(13px, 3vmin, 19px); line-height: 1.7; margin-bottom: clamp(12px,3vmin,26px); }
+    .splash-title { font-size: clamp(26px, 8vmin, 54px); }
+    .splash-sub { font-size: clamp(12px, 3vmin, 16px); line-height: 1.7; white-space: normal; }
+  }
+  /* ===== 手机布局(body.mobile-landscape;竖持再加 force-rotate 整屏旋转90°) =====
+     关卡名(上) / 材料库|网格|关卡选择(中) / 完成度(下);桌面平板不受影响 */
+  body.mobile-landscape #game { gap: 5px; }   /* 列排:顶栏 / 主区 / 完成度 */
+  /* 顶栏:横排,关卡名占整行拉宽,其余控件一行 */
+  body.mobile-landscape #topbar { width: 100%; gap: 5px; flex-wrap: nowrap; align-items: stretch; justify-content: center; }
+  /* 统一高度:固定 36px,内容垂直居中 */
+  body.mobile-landscape #topbar .stat { height: 36px; min-height: 36px; padding: 0 10px; font-size: 12px; align-items: center; }
+  body.mobile-landscape #order { flex: 0 1 auto; min-width: 0; width: auto; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  body.mobile-landscape #progwrap { flex: 1 1 auto; min-width: 160px; }
+  body.mobile-landscape #timer b { font-size: 16px; }
+  /* 中部:材料库 | 网格 | 关卡(竖排右),撑满中间高度 */
+  body.mobile-landscape #main { align-items: stretch; gap: 6px; justify-content: center; }
+  body.mobile-landscape #panel { max-height: none; width: 210px; height: auto !important; align-self: stretch; padding: 12px; }
+  /* 关键:覆盖桌面内联 width(=网格宽),否则关卡条会溢出被切 */
+  body.mobile-landscape #stage { flex-direction: row; align-items: center; justify-content: center; gap: 6px; width: auto !important; }
+  body.mobile-landscape #hint { display: none; }
+  body.mobile-landscape #lvbar {
+    margin-top: 0; flex-direction: column; align-self: stretch;
+    max-width: 84px; overflow-x: hidden; overflow-y: auto; padding: 6px;
+  }
+  body.mobile-landscape .lvchip { width: 60px; }
+  /* 竖持手机:把整屏(游戏+暂停/结算+关卡说明+开屏视频)一起旋转 90° 强制横屏 */
+  body.force-rotate #wrap,
+  body.force-rotate #intro,
+  body.force-rotate #splash {
+    position: fixed; top: 0; left: 0; right: auto; bottom: auto;
+    width: 100dvh; height: 100dvw;          /* dvh/dvw 排除地址栏,避免与可视区不符导致偏移 */
+    transform-origin: top left;
+    transform: translateX(100dvw) rotate(90deg);
+    overflow: hidden;
+  }
 </style>
 </head>
 <body>
@@ -463,7 +531,7 @@ const LEVEL_INTROS = [
 ];
 
 // ---------- 网格与状态 ----------
-const COLS = 13, ROWS = 11, CELL = 44;
+let COLS = 13, ROWS = 11, CELL = 44;   // 电脑端 13×11×44;手机端 11×9×54(见 loadLevel)
 const cv = document.getElementById('cv');
 cv.width = COLS * CELL; cv.height = ROWS * CELL;
 document.getElementById('panel').style.height = cv.height + 'px';   // 材料库与网格等高
@@ -482,6 +550,10 @@ const mouse = { c: -1, r: -1 };
 
 function loadLevel(idx) {
   const lv = LEVELS[idx];
+  // 手机端用 11列×9行,格子放大(54)让网格与材料库/关卡条等高;电脑端 13×11×44
+  if (document.body.classList.contains('mobile-landscape')) { COLS = 11; ROWS = 9; CELL = 54; }
+  else { COLS = 13; ROWS = 11; CELL = 44; }
+  cv.width = COLS * CELL; cv.height = ROWS * CELL;
   target = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   grid   = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   // 把图纸居中放进网格
@@ -1200,45 +1272,104 @@ function playFailSound() {
 }
 
 // ---------- 放置 / 拆除 ----------
-cv.addEventListener('mousemove', e => {
+// ---------- 反馈 helper:触觉(震动) / 波纹 / 全屏闪光 ----------
+// 震动仅 Android/鸿蒙等支持 Vibration API 的设备生效,iOS 静默忽略。
+function haptic(pattern) {
+  try { if (!soundMuted && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+function tapRipple(clientX, clientY, color) {
+  if (!isTouchDevice()) return;   // 仅触屏设备显示,桌面保持原样
+  try {
+    const d = document.createElement('div');
+    d.className = 'tap-ripple';
+    d.style.left = clientX + 'px'; d.style.top = clientY + 'px'; d.style.color = color;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 480);
+  } catch (e) {}
+}
+function fxFlash(color) {
+  if (!isTouchDevice()) return;   // 仅触屏设备显示,桌面保持原样
+  try {
+    const d = document.createElement('div');
+    d.className = 'fx-flash'; d.style.background = color;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 520);
+  } catch (e) {}
+}
+
+// 由 client 坐标换算格子(画布可能被整体缩放,用实际渲染尺寸)
+function cellFromClient(clientX, clientY) {
   const b = cv.getBoundingClientRect();
-  // 画布可能被整体缩放,用实际渲染尺寸换算格子坐标
-  mouse.c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
-  mouse.r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
+  if (document.body.classList.contains('force-rotate')) {
+    // 画布被 rotate(90deg) 顺时针旋转:把屏幕坐标反算回画布本地坐标
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    const s = b.height / (COLS * CELL);          // 渲染缩放(旋转后 AABB 高 = 自然宽 × s)
+    const localX = (COLS * CELL) / 2 + (clientY - cy) / s;   // 列向 ~ 屏幕 y
+    const localY = (ROWS * CELL) / 2 - (clientX - cx) / s;   // 行向 ~ 屏幕 -x
+    return { c: Math.floor(localX / CELL), r: Math.floor(localY / CELL) };
+  }
+  return {
+    c: Math.floor((clientX - b.left) / (b.width  / COLS)),
+    r: Math.floor((clientY - b.top)  / (b.height / ROWS)),
+  };
+}
+
+cv.addEventListener('mousemove', e => {
+  const p = cellFromClient(e.clientX, e.clientY); mouse.c = p.c; mouse.r = p.r;
 });
 cv.addEventListener('mouseleave', () => { mouse.c = mouse.r = -1; });
+
+// 触摸:更新悬停 + 抬起放置;阻止默认避免页面滚动/缩放与合成 click 重复
+let lastTouchAt = 0;
+cv.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  if (t) { const p = cellFromClient(t.clientX, t.clientY); mouse.c = p.c; mouse.r = p.r; }
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  if (t) { const p = cellFromClient(t.clientX, t.clientY); mouse.c = p.c; mouse.r = p.r; }
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('touchend', e => {
+  lastTouchAt = perfNow();
+  const t = e.changedTouches[0];
+  if (t) boardTap(t.clientX, t.clientY);
+  mouse.c = mouse.r = -1;
+  e.preventDefault();
+}, { passive: false });
+
 cv.addEventListener('click', e => {
+  if (perfNow() - lastTouchAt < 600) return;   // 触摸已处理,忽略合成 click,避免重复放置
+  boardTap(e.clientX, e.clientY);
+});
+
+// 棋盘点击/触摸:放置/拆除一格,并附带触觉+波纹反馈
+function boardTap(clientX, clientY) {
   if (phase !== 'play') return;
-  const b = cv.getBoundingClientRect();
-  const c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
-  const r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
+  const { c, r } = cellFromClient(clientX, clientY);
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-  if (!inBounds(r, c)) return;   // 非可填充格子禁用,不可点击
+  if (!inBounds(r, c)) return;   // 非可填充格子禁用
   const cell = grid[r][c];
   if (cell) {
-    // 石头障碍:不可点击/拆除,需用相邻红砖(火)烧碎
-    if (cell.type === 'stone') {
-      flashHint('🪨 这是石头障碍,用相邻的红砖把它烧碎吧!');
-      return;
-    }
-    // 被绿色蔓延出来的格子(孢子)已"长死"——不能拆除、不能改颜色
-    if (cell.type === 'green' && !cell.byPlayer) {
-      flashHint('🌿 这里被绿砖蔓延占据了,无法再改动!');
-      return;
-    }
+    if (cell.type === 'stone') { flashHint('🪨 这是石头障碍,用相邻的红砖把它烧碎吧!'); haptic(30); return; }
+    if (cell.type === 'green' && !cell.byPlayer) { flashHint('🌿 这里被绿砖蔓延占据了,无法再改动!'); haptic(30); return; }
     // 拆除:玩家放的回收库存,副作用产生的(孢子)不回收
     if (cell.byPlayer) inventory[cell.type]++;
     grid[r][c] = null;
+    haptic(8); tapRipple(clientX, clientY, 'rgba(150,150,150,.8)');
   } else {
-    // 触发解锁:点到尚未解锁的颜色目标格 → 在左侧揭示这块新砖并给出副作用提示
+    // 触发解锁:点到尚未解锁的颜色目标格
     const tcol = target[r][c];
     if (tcol && lockedSet.has(tcol) && !unlocked.has(tcol)) {
       unlocked.add(tcol); lockedSet.delete(tcol); selected = tcol;
       flashHint(`🎉 发现新材料 · ${BRICKS[tcol].name}:${BRICKS[tcol].desc}`);
+      haptic([12, 40, 25]);
       if (inventory[tcol] > 0) {
         grid[r][c] = { type: tcol, byPlayer: true, age: 0, protect: false };
         inventory[tcol]--;
         playPlaceSound();
+        tapRipple(clientX, clientY, 'rgba(255,233,168,.95)');
       }
       buildPanel();
       return;
@@ -1248,12 +1379,14 @@ cv.addEventListener('click', e => {
       grid[r][c] = { type: placed, byPlayer: true, age: 0, protect: false };
       inventory[placed]--;
       playPlaceSound();
-      // 放错颜色提示音(目标格存在且颜色不匹配,彩虹砖万能不算错)
+      // 放错颜色提示(目标格存在且颜色不匹配,彩虹砖万能不算错)
       const tgt = target[r][c];
       if (tgt && placed !== tgt && placed !== 'rainbow') {
         sfx('wrong', playWrongSound, 80);
+        haptic([15, 30, 15]); tapRipple(clientX, clientY, 'rgba(220,70,70,.9)');
+      } else {
+        haptic(10); tapRipple(clientX, clientY, 'rgba(255,255,255,.9)');
       }
-      // 第一次放下神秘砖 → 揭示并提示其副作用
       if (mysterySet.has(placed) && !revealed.has(placed)) {
         revealed.add(placed);
         flashHint(`🔬 ${BRICKS[placed].name}的副作用:${BRICKS[placed].desc}`);
@@ -1262,7 +1395,7 @@ cv.addEventListener('click', e => {
     }
   }
   buildPanel();
-});
+}
 function autoSelect() {
   const k = [...unlocked].find(t => inventory[t] > 0);
   if (k) selected = k;
@@ -1589,6 +1722,8 @@ function updateHUD() {
 // ---------- 胜负界面 ----------
 function showWin() {
   playWinSound();
+  haptic([0, 35, 50, 35, 90]);            // 通关:欢快的多段震动
+  fxFlash('radial-gradient(circle, rgba(90,220,140,.45), rgba(90,220,140,0) 70%)');
   // 埋点:本关通关(含实际耗时与剩余时间,用于难度/时长分析)
   if (window.TBTrack) {
     const allotted = LEVELS[levelIdx].time;
@@ -1619,6 +1754,8 @@ function showWin() {
 }
 function showLose() {
   playFailSound();
+  haptic([90, 50, 90]);                   // 失败:沉重的两段震动
+  fxFlash('radial-gradient(circle, rgba(220,80,80,.45), rgba(220,80,80,0) 70%)');
   const ov = document.getElementById('overlay');
   const p = evalProgress();
   // 埋点:本关失败(时间耗尽),记录结束时完成度(区分"差一点"还是"机制太难")
@@ -1819,6 +1956,7 @@ levelIdx = 0;
   let revealed = false;
   const reveal = () => {
     if (revealed) return; revealed = true;
+    cleanup();                                     // 移除手势监听,避免视频播完后移动鼠标/触碰触发重播(桌面+手机)
     if (ui) ui.classList.add('show');
     if (skipBtn) skipBtn.style.display = 'none';   // 显示开始界面后隐藏"跳过"按钮
   };
@@ -1871,32 +2009,64 @@ async function fetchLevelConfig() {
 function fitGame() {
   const game = document.getElementById('game');
   if (!game) return;
-  game.style.transform = 'none';            // 先复位,量出原始尺寸
+  if (!document.body.classList.contains('mobile-landscape')) {
+    // 桌面:原始逻辑(flex 居中 + 纯 scale)
+    game.style.transform = 'none';
+    const w = game.offsetWidth, h = game.offsetHeight;
+    if (!w || !h) return;
+    const margin = 24;
+    let scale = Math.min((window.innerWidth - margin) / w, (window.innerHeight - margin) / h);
+    scale = Math.min(scale, 1.6);
+    if (scale < 0.3) scale = 0.3;
+    game.style.transform = 'scale(' + scale + ')';
+    return;
+  }
+  // 手机:translate 居中 + 旋转(由 #wrap 承担)时交换可用宽高 + visualViewport
+  game.style.transform = 'translate(-50%, -50%)';
   const w = game.offsetWidth, h = game.offsetHeight;
   if (!w || !h) return;
-  const margin = 24;                        // 四周留白
-  const sx = (window.innerWidth  - margin) / w;
-  const sy = (window.innerHeight - margin) / h;
-  let scale = Math.min(sx, sy);
-  scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍,避免过大
-  if (scale < 0.3) scale = 0.3;             // 极小屏下限
-  game.style.transform = 'scale(' + scale + ')';
+  const rotate = document.body.classList.contains('force-rotate');
+  const vv = window.visualViewport;
+  const vpW = vv ? vv.width : window.innerWidth;
+  const vpH = vv ? vv.height : window.innerHeight;
+  const margin = 12;
+  const availW = (rotate ? vpH : vpW) - margin;
+  const availH = (rotate ? vpW : vpH) - margin;
+  let scale = Math.min(availW / w, availH / h);
+  scale = Math.min(scale, 1.6);
+  if (scale < 0.2) scale = 0.2;
+  game.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
 }
-window.addEventListener('resize', fitGame);
-window.addEventListener('orientationchange', fitGame);
+// ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
+function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
+function updateOrientation() {
+  const touch = isTouchDevice();
+  const small = Math.min(window.innerWidth, window.innerHeight) <= 540;  // 手机尺寸
+  const useMobile = touch && small;
+  const portrait = window.innerHeight > window.innerWidth;
+  document.body.classList.toggle('mobile-landscape', useMobile);
+  document.body.classList.toggle('force-rotate', useMobile && portrait);
+  fitGame();
+  requestAnimationFrame(fitGame);   // 等布局/字体稳定后再量一次,保证缩放准确、右侧不被挤出
+}
+window.addEventListener('resize', updateOrientation);
+window.addEventListener('orientationchange', updateOrientation);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', fitGame);
+updateOrientation();   // 页面加载即判定手机/横屏并设好类,使开屏视频也横屏
 
 document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
   const vid = document.getElementById('splash-video');
   if (vid) { vid.pause(); }
-  sp.classList.add('hide');
-  setTimeout(() => sp.remove(), 500);
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
-  fitGame();               // 进入游戏后按屏幕大小缩放居中
-  loop();
+  updateOrientation();     // 布局+居中/缩放
+  loop();                  // 先渲染一帧,把网格画出来
+  // 网格已画好后再淡出开场,避免露出"空网格/未就绪"的画面
+  sp.classList.add('hide');
+  setTimeout(() => sp.remove(), 500);
 };
 </script>
 </body>
