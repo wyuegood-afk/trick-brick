@@ -2059,21 +2059,15 @@ document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
   const vid = document.getElementById('splash-video');
   if (vid) { vid.pause(); }
-  const mobile = document.body.classList.contains('mobile-landscape');
-  if (!mobile) {            // 桌面:原始顺序——立即淡出开场
-    sp.classList.add('hide');
-    setTimeout(() => sp.remove(), 500);
-  }
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
-  updateOrientation();
-  if (mobile) {            // 手机:布局并居中后再淡出,避免露出未居中画面跳动
-    sp.classList.add('hide');
-    setTimeout(() => sp.remove(), 500);
-  }
-  loop();
+  updateOrientation();     // 布局+居中/缩放
+  loop();                  // 先渲染一帧,把网格画出来
+  // 网格已画好后再淡出开场,避免露出"空网格/未就绪"的画面
+  sp.classList.add('hide');
+  setTimeout(() => sp.remove(), 500);
 };
 </script>
 </body>
