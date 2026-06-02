@@ -11,8 +11,9 @@
     background: url('background.png') center/cover no-repeat fixed;
     color: #eee; overflow: hidden;
   }
-  #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
-  #game { display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
+  #wrap { position: fixed; inset: 0; overflow: hidden; }
+  /* 绝对定位 + translate(-50%,-50%) 按自身尺寸真正居中,缩放后也不偏(scale 不影响布局盒,用 flex 居中会算错) */
+  #game { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
   #main { display: flex; align-items: flex-start; gap: 14px; }
 
   /* 左侧材料库(素描手绘风:纸片底 + 柔墨描边 + 楷体) */
@@ -1956,7 +1957,7 @@ async function fetchLevelConfig() {
 function fitGame() {
   const game = document.getElementById('game');
   if (!game) return;
-  game.style.transform = 'none';            // 先复位,量出原始尺寸
+  game.style.transform = 'translate(-50%, -50%)';   // 先按 1 倍居中,量出原始尺寸(offset 不受 transform 影响)
   const w = game.offsetWidth, h = game.offsetHeight;
   if (!w || !h) return;
   const margin = 24;                        // 四周留白
@@ -1965,7 +1966,7 @@ function fitGame() {
   let scale = Math.min(sx, sy);
   scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍,避免过大
   if (scale < 0.3) scale = 0.3;             // 极小屏下限
-  game.style.transform = 'scale(' + scale + ')';
+  game.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';   // 居中 + 缩放,视觉中心始终在屏幕正中
 }
 // ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
 function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
