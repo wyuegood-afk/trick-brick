@@ -1925,6 +1925,7 @@ levelIdx = 0;
   let revealed = false;
   const reveal = () => {
     if (revealed) return; revealed = true;
+    cleanup();                                     // 移除手势监听,避免播完后移动鼠标/点击触发 vid.play() 重播
     if (ui) ui.classList.add('show');
     if (skipBtn) skipBtn.style.display = 'none';   // 显示开始界面后隐藏"跳过"按钮
   };
