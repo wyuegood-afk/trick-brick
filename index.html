@@ -315,8 +315,9 @@
      关卡名(上) / 材料库|网格|关卡选择(中) / 完成度(下);桌面平板不受影响 */
   body.mobile-landscape #game { gap: 5px; }   /* 列排:顶栏 / 主区 / 完成度 */
   /* 顶栏:横排,关卡名占整行拉宽,其余控件一行 */
-  body.mobile-landscape #topbar { width: 100%; gap: 5px; flex-wrap: nowrap; align-items: center; justify-content: center; }
-  body.mobile-landscape #topbar .stat { height: auto; padding: 5px 10px; font-size: 12px; }
+  body.mobile-landscape #topbar { width: 100%; gap: 5px; flex-wrap: nowrap; align-items: stretch; justify-content: center; }
+  /* 统一高度:固定 36px,内容垂直居中 */
+  body.mobile-landscape #topbar .stat { height: 36px; min-height: 36px; padding: 0 10px; font-size: 12px; align-items: center; }
   body.mobile-landscape #order { flex: 1 1 auto; min-width: 0; width: auto; max-width: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
   body.mobile-landscape #progwrap { flex: 0 1 170px; min-width: 110px; }
   body.mobile-landscape #timer b { font-size: 16px; }
