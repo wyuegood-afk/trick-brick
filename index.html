@@ -322,7 +322,7 @@
   body.mobile-landscape #timer b { font-size: 16px; }
   /* 中部:材料库 | 网格 | 关卡(竖排右),撑满中间高度 */
   body.mobile-landscape #main { align-items: stretch; gap: 6px; justify-content: center; }
-  body.mobile-landscape #panel { max-height: none; width: 190px; height: auto !important; align-self: stretch; padding: 12px; }
+  body.mobile-landscape #panel { max-height: none; width: 210px; height: auto !important; align-self: stretch; padding: 12px; }
   /* 关键:覆盖桌面内联 width(=网格宽),否则关卡条会溢出被切 */
   body.mobile-landscape #stage { flex-direction: row; align-items: center; justify-content: center; gap: 6px; width: auto !important; }
   body.mobile-landscape #hint { display: none; }
@@ -525,7 +525,8 @@ const LEVEL_INTROS = [
 ];
 
 // ---------- 网格与状态 ----------
-const COLS = 13, ROWS = 11, CELL = 44;   // 所有关卡统一网格(取最大),手机/电脑一致
+let COLS = 13, ROWS = 11;   // 电脑端 13×11;手机端 11×9(见 loadLevel)
+const CELL = 44;
 const cv = document.getElementById('cv');
 cv.width = COLS * CELL; cv.height = ROWS * CELL;
 document.getElementById('panel').style.height = cv.height + 'px';   // 材料库与网格等高
@@ -544,10 +545,14 @@ const mouse = { c: -1, r: -1 };
 
 function loadLevel(idx) {
   const lv = LEVELS[idx];
-  const ph = lv.rows.length, pw = lv.rows[0].length;
+  // 手机端用 11列×9行(刚好容纳最大图案,更省空间);电脑端 13×11
+  if (document.body.classList.contains('mobile-landscape')) { COLS = 11; ROWS = 9; }
+  else { COLS = 13; ROWS = 11; }
+  cv.width = COLS * CELL; cv.height = ROWS * CELL;
   target = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   grid   = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   // 把图纸居中放进网格
+  const ph = lv.rows.length, pw = lv.rows[0].length;
   const or = Math.floor((ROWS - ph) / 2), oc = Math.floor((COLS - pw) / 2);
   const need = {};
   burnableSet = new Set();
