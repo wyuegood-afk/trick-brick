@@ -22,9 +22,20 @@
     catch (e) { return 'r-' + Date.now() + '-' + Math.floor(Math.random() * 1e9); }
   }
 
+  // 访客标识:每个浏览器一个持久 UUID(localStorage),用于后端按"人/设备"去重统计独立访客。
+  // 不依赖 IP,同一 WiFi 下的不同浏览器也能区分。隐私模式/禁用存储时降级为本次会话临时 ID。
+  var VISITOR_ID = (function () {
+    try {
+      var k = 'tb_visitor_id';
+      var v = localStorage.getItem(k);
+      if (!v) { v = uuid(); localStorage.setItem(k, v); }
+      return v;
+    } catch (e) { return uuid(); }
+  })();
+
   function send(payload) {
     try {
-      var body = JSON.stringify(Object.assign({ run_id: state.runId }, payload));
+      var body = JSON.stringify(Object.assign({ run_id: state.runId, visitor_id: VISITOR_ID }, payload));
       // 优先 sendBeacon:不阻塞、页面关闭也能发出
       if (navigator.sendBeacon) {
         var blob = new Blob([body], { type: 'application/json' });
