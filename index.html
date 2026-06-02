@@ -329,8 +329,6 @@
     max-width: 84px; overflow-x: hidden; overflow-y: auto; padding: 6px;
   }
   body.mobile-landscape .lvchip { width: 60px; }
-  /* 底部:完成度拉宽(由 JS 移到 #game 末尾) */
-  body.mobile-landscape #progwrap { width: 90%; max-width: 640px; min-width: 0; flex: 0 0 auto; }
   /* 竖持手机:把整屏(游戏+暂停/结算+关卡说明+开屏视频)一起旋转 90° 强制横屏 */
   body.force-rotate #wrap,
   body.force-rotate #intro,
@@ -2024,14 +2022,6 @@ function updateOrientation() {
   const portrait = window.innerHeight > window.innerWidth;
   document.body.classList.toggle('mobile-landscape', useMobile);
   document.body.classList.toggle('force-rotate', useMobile && portrait);
-  // 手机:把"完成度"移到 #game 末尾(最下方);电脑:还原回顶栏
-  const prog = document.getElementById('progwrap');
-  const game = document.getElementById('game');
-  const topbar = document.getElementById('topbar');
-  if (prog && game && topbar) {
-    if (useMobile && prog.parentNode !== game) game.appendChild(prog);
-    else if (!useMobile && prog.parentNode !== topbar) topbar.appendChild(prog);
-  }
   fitGame();
 }
 window.addEventListener('resize', updateOrientation);
