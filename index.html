@@ -280,16 +280,6 @@
     35% { transform: translateY(-18px) rotate(-8deg); }
   }
   @keyframes ldDots { 0%{content:"";} 25%{content:"·";} 50%{content:"··";} 75%{content:"···";} }
-  /* 竖屏旋转提示(手机端) */
-  #rotate-tip {
-    display: none; position: fixed; inset: 0; z-index: 300;
-    background: #1c1f26; color: #f4efe1; align-items: center; justify-content: center; text-align: center;
-    font-family: "STKaiti","KaiTi","楷体",cursive;
-  }
-  #rotate-tip .rt-icon { font-size: 64px; margin-bottom: 18px; animation: rtRotate 1.8s ease-in-out infinite; display: inline-block; }
-  #rotate-tip .rt-main { font-size: 22px; font-weight: 800; letter-spacing: 2px; }
-  #rotate-tip .rt-sub { font-size: 14px; opacity: .7; margin-top: 8px; }
-  @keyframes rtRotate { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-90deg)} }
   /* 点击/触摸波纹反馈 */
   .tap-ripple {
     position: fixed; z-index: 250; width: 36px; height: 36px; margin: -18px 0 0 -18px;
@@ -355,13 +345,6 @@
 </style>
 </head>
 <body>
-<div id="rotate-tip">
-  <div>
-    <div class="rt-icon">📱</div>
-    <div class="rt-main">请把手机横过来</div>
-    <div class="rt-sub">横屏游玩体验更佳</div>
-  </div>
-</div>
 <div id="wrap">
  <div id="game">
   <div id="topbar">
@@ -2036,22 +2019,14 @@ function fitGame() {
 // ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
 function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
 function updateOrientation() {
-  const tip = document.getElementById('rotate-tip');
-  if (tip) tip.style.display = 'none';                 // 不再提示旋转
   const touch = isTouchDevice();
   const small = Math.min(window.innerWidth, window.innerHeight) <= 540;  // 手机尺寸
   const useMobile = touch && small;
   const portrait = window.innerHeight > window.innerWidth;
-  // 手机一律用横排布局;竖持时把整个游戏旋转 90° 强制横屏(平板/桌面不受影响)
+  // 手机一律用横排布局;竖持时把整屏旋转 90° 强制横屏(平板/桌面不受影响)
   document.body.classList.toggle('mobile-landscape', useMobile);
   document.body.classList.toggle('force-rotate', useMobile && portrait);
   fitGame();
-}
-async function lockLandscape() {
-  // 仅 Android 等支持、且多在全屏下才生效;iOS Safari 不支持,失败静默
-  try {
-    if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
-  } catch (e) {}
 }
 window.addEventListener('resize', updateOrientation);
 window.addEventListener('orientationchange', updateOrientation);
@@ -2063,7 +2038,6 @@ document.getElementById('splash-start').onclick = async () => {
   const vid = document.getElementById('splash-video');
   if (vid) { vid.pause(); }
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
-  if (isTouchDevice()) lockLandscape();    // 手机端尽力锁横屏(不支持则靠下方提示)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
