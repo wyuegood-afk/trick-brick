@@ -321,31 +321,27 @@
     .splash-title { font-size: clamp(26px, 8vmin, 54px); }
     .splash-sub { font-size: clamp(12px, 3vmin, 16px); line-height: 1.7; white-space: normal; }
   }
-  /* ===== 横屏手机布局:菜单竖排左 / 关卡竖排右 / 材料库+网格填满高度 ===== */
-  @media (max-height: 560px) {
-    #game { flex-direction: row; align-items: stretch; gap: 8px; }
-    /* 顶部菜单 -> 左侧竖排 */
-    #topbar {
-      flex-direction: column; flex-wrap: nowrap; width: auto; max-width: 150px;
-      gap: 6px; align-items: stretch; justify-content: center;
-    }
-    #topbar .stat { height: auto; padding: 6px 10px; font-size: 12px; justify-content: center; }
-    #order { width: auto; max-width: 150px; white-space: normal; text-align: center; line-height: 1.25; }
-    #timer { padding: 6px 10px; justify-content: center; }
-    #timer b { font-size: 18px; min-width: 22px; }
-    #progwrap { flex: 0 0 auto; min-width: 0; width: auto; flex-direction: column; align-items: stretch; gap: 4px; font-size: 12px; }
-    /* 主区域 + 材料库填满高度 */
-    #main { align-items: stretch; gap: 8px; }
-    #panel { max-height: none; width: 170px; align-self: stretch; }
-    /* 舞台 -> 行:画布在左,关卡竖排在右 */
-    #stage { flex-direction: row; align-items: center; justify-content: center; gap: 8px; }
-    #hint { display: none; }
-    #lvbar {
-      margin-top: 0; flex-direction: column; align-self: stretch;
-      max-width: 90px; overflow-x: hidden; overflow-y: auto;
-    }
-    .lvchip { width: 66px; }
+  /* ===== 手机横屏布局(由 JS 加 body.mobile-landscape 触发,竖持时再加 force-rotate 旋转90°) ===== */
+  /* 菜单竖排左 / 关卡竖排右 / 材料库+网格填满高度;桌面与平板不受影响 */
+  body.mobile-landscape #game { flex-direction: row; align-items: stretch; gap: 6px; }
+  body.mobile-landscape #topbar {
+    flex-direction: column; flex-wrap: nowrap; width: auto; gap: 5px;
+    align-items: stretch; justify-content: center;
   }
+  body.mobile-landscape #topbar .stat { height: auto; padding: 5px 12px; font-size: 12px; white-space: nowrap; justify-content: center; }
+  body.mobile-landscape #order { width: auto; max-width: none; white-space: nowrap; text-align: center; }
+  body.mobile-landscape #timer { padding: 5px 12px; }
+  body.mobile-landscape #timer b { font-size: 16px; min-width: 20px; }
+  body.mobile-landscape #progwrap { flex: 0 0 auto; min-width: 0; width: 100%; flex-direction: column; align-items: stretch; gap: 3px; font-size: 11px; }
+  body.mobile-landscape #main { align-items: stretch; gap: 6px; }
+  body.mobile-landscape #panel { max-height: none; width: 150px; align-self: stretch; padding: 10px; }
+  body.mobile-landscape #stage { flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
+  body.mobile-landscape #hint { display: none; }
+  body.mobile-landscape #lvbar {
+    margin-top: 0; flex-direction: column; align-self: stretch;
+    max-width: 84px; overflow-x: hidden; overflow-y: auto; padding: 6px;
+  }
+  body.mobile-landscape .lvchip { width: 60px; }
 </style>
 </head>
 <body>
@@ -1302,6 +1298,14 @@ function fxFlash(color) {
 // 由 client 坐标换算格子(画布可能被整体缩放,用实际渲染尺寸)
 function cellFromClient(clientX, clientY) {
   const b = cv.getBoundingClientRect();
+  if (document.body.classList.contains('force-rotate')) {
+    // 画布被 rotate(90deg) 顺时针旋转:把屏幕坐标反算回画布本地坐标
+    const cx = b.left + b.width / 2, cy = b.top + b.height / 2;
+    const s = b.height / (COLS * CELL);          // 渲染缩放(旋转后 AABB 高 = 自然宽 × s)
+    const localX = (COLS * CELL) / 2 + (clientY - cy) / s;   // 列向 ~ 屏幕 y
+    const localY = (ROWS * CELL) / 2 - (clientX - cx) / s;   // 行向 ~ 屏幕 -x
+    return { c: Math.floor(localX / CELL), r: Math.floor(localY / CELL) };
+  }
   return {
     c: Math.floor((clientX - b.left) / (b.width  / COLS)),
     r: Math.floor((clientY - b.top)  / (b.height / ROWS)),
@@ -2003,23 +2007,32 @@ async function fetchLevelConfig() {
 function fitGame() {
   const game = document.getElementById('game');
   if (!game) return;
-  game.style.transform = 'translate(-50%, -50%)';   // 先按 1 倍居中,量出原始尺寸(offset 不受 transform 影响)
+  const rotate = document.body.classList.contains('force-rotate');
+  const base = 'translate(-50%, -50%)' + (rotate ? ' rotate(90deg)' : '');
+  game.style.transform = base;              // 先不缩放,量出原始尺寸(offset 不受 transform 影响)
   const w = game.offsetWidth, h = game.offsetHeight;
   if (!w || !h) return;
-  const margin = 24;                        // 四周留白
-  const sx = (window.innerWidth  - margin) / w;
-  const sy = (window.innerHeight - margin) / h;
-  let scale = Math.min(sx, sy);
-  scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍,避免过大
-  if (scale < 0.3) scale = 0.3;             // 极小屏下限
-  game.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';   // 居中 + 缩放,视觉中心始终在屏幕正中
+  const margin = 16;                        // 四周留白
+  const availW = window.innerWidth - margin;
+  const availH = window.innerHeight - margin;
+  // 旋转 90° 后:游戏的宽度对应屏幕高度、游戏高度对应屏幕宽度
+  let scale = rotate ? Math.min(availH / w, availW / h) : Math.min(availW / w, availH / h);
+  scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍
+  if (scale < 0.2) scale = 0.2;             // 极小屏下限
+  game.style.transform = base + ' scale(' + scale + ')';   // 居中(+旋转)+缩放
 }
 // ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
 function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
 function updateOrientation() {
-  // 不再提示用户旋转:布局已按横屏自适应(见 @media max-height:560px),直接缩放居中即可
   const tip = document.getElementById('rotate-tip');
-  if (tip) tip.style.display = 'none';
+  if (tip) tip.style.display = 'none';                 // 不再提示旋转
+  const touch = isTouchDevice();
+  const small = Math.min(window.innerWidth, window.innerHeight) <= 540;  // 手机尺寸
+  const useMobile = touch && small;
+  const portrait = window.innerHeight > window.innerWidth;
+  // 手机一律用横排布局;竖持时把整个游戏旋转 90° 强制横屏(平板/桌面不受影响)
+  document.body.classList.toggle('mobile-landscape', useMobile);
+  document.body.classList.toggle('force-rotate', useMobile && portrait);
   fitGame();
 }
 async function lockLandscape() {
@@ -2029,7 +2042,8 @@ async function lockLandscape() {
   } catch (e) {}
 }
 window.addEventListener('resize', updateOrientation);
-window.addEventListener('orientationchange', updateOrientation);
+// 旋转后布局/视口尺寸需要一点时间稳定,延迟再量一次,避免缩放算错
+window.addEventListener('orientationchange', () => { updateOrientation(); setTimeout(updateOrientation, 300); });
 
 document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
