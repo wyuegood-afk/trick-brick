@@ -1956,8 +1956,7 @@ levelIdx = 0;
   let revealed = false;
   const reveal = () => {
     if (revealed) return; revealed = true;
-    // 仅手机:移除手势监听,避免播完后触碰触发重播(桌面保持原行为)
-    if (document.body.classList.contains('mobile-landscape')) cleanup();
+    cleanup();                                     // 移除手势监听,避免视频播完后移动鼠标/触碰触发重播(桌面+手机)
     if (ui) ui.classList.add('show');
     if (skipBtn) skipBtn.style.display = 'none';   // 显示开始界面后隐藏"跳过"按钮
   };
