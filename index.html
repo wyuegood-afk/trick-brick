@@ -311,19 +311,16 @@
     .splash-title { font-size: clamp(26px, 8vmin, 54px); }
     .splash-sub { font-size: clamp(12px, 3vmin, 16px); line-height: 1.7; white-space: normal; }
   }
-  /* ===== 手机横屏布局(由 JS 加 body.mobile-landscape 触发,竖持时再加 force-rotate 旋转90°) ===== */
-  /* 菜单竖排左 / 关卡竖排右 / 材料库+网格填满高度;桌面与平板不受影响 */
-  body.mobile-landscape #game { flex-direction: row; align-items: stretch; gap: 6px; }
-  body.mobile-landscape #topbar {
-    flex-direction: column; flex-wrap: nowrap; width: auto; gap: 5px;
-    align-items: stretch; justify-content: center;
-  }
-  body.mobile-landscape #topbar .stat { height: auto; padding: 5px 12px; font-size: 12px; white-space: nowrap; justify-content: center; }
-  body.mobile-landscape #order { width: auto; max-width: none; white-space: nowrap; text-align: center; }
-  body.mobile-landscape #timer { padding: 5px 12px; }
-  body.mobile-landscape #timer b { font-size: 16px; min-width: 20px; }
-  body.mobile-landscape #progwrap { flex: 0 0 auto; min-width: 0; width: 100%; flex-direction: column; align-items: stretch; gap: 3px; font-size: 11px; }
-  body.mobile-landscape #main { align-items: stretch; gap: 6px; }
+  /* ===== 手机布局(body.mobile-landscape;竖持再加 force-rotate 整屏旋转90°) =====
+     关卡名(上) / 材料库|网格|关卡选择(中) / 完成度(下);桌面平板不受影响 */
+  body.mobile-landscape #game { gap: 5px; }   /* 列排:顶栏 / 主区 / 完成度 */
+  /* 顶栏:横排,关卡名占整行拉宽,其余控件一行 */
+  body.mobile-landscape #topbar { width: 100%; gap: 5px; flex-wrap: wrap; justify-content: center; }
+  body.mobile-landscape #topbar .stat { height: auto; padding: 5px 12px; font-size: 13px; }
+  body.mobile-landscape #order { flex: 1 1 100%; width: auto; max-width: none; text-align: center; white-space: normal; }
+  body.mobile-landscape #timer b { font-size: 18px; }
+  /* 中部:材料库 | 网格 | 关卡(竖排右),撑满中间高度 */
+  body.mobile-landscape #main { align-items: stretch; gap: 6px; justify-content: center; }
   body.mobile-landscape #panel { max-height: none; width: 150px; align-self: stretch; padding: 10px; }
   body.mobile-landscape #stage { flex-direction: row; align-items: center; justify-content: center; gap: 6px; }
   body.mobile-landscape #hint { display: none; }
@@ -332,6 +329,8 @@
     max-width: 84px; overflow-x: hidden; overflow-y: auto; padding: 6px;
   }
   body.mobile-landscape .lvchip { width: 60px; }
+  /* 底部:完成度拉宽(由 JS 移到 #game 末尾) */
+  body.mobile-landscape #progwrap { width: 90%; max-width: 640px; min-width: 0; flex: 0 0 auto; }
   /* 竖持手机:把整屏(游戏+暂停/结算+关卡说明+开屏视频)一起旋转 90° 强制横屏 */
   body.force-rotate #wrap,
   body.force-rotate #intro,
@@ -526,8 +525,7 @@ const LEVEL_INTROS = [
 ];
 
 // ---------- 网格与状态 ----------
-let COLS = 13, ROWS = 11;            // 电脑端固定 13×11;手机端按关卡缩小(见 loadLevel)
-const CELL = 44;
+const COLS = 13, ROWS = 11, CELL = 44;   // 所有关卡统一网格(取最大),手机/电脑一致
 const cv = document.getElementById('cv');
 cv.width = COLS * CELL; cv.height = ROWS * CELL;
 document.getElementById('panel').style.height = cv.height + 'px';   // 材料库与网格等高
@@ -547,19 +545,6 @@ const mouse = { c: -1, r: -1 };
 function loadLevel(idx) {
   const lv = LEVELS[idx];
   const ph = lv.rows.length, pw = lv.rows[0].length;
-  // 手机端把网格缩成"图案 + 1 格边距"(给蔓延/烧裂留点空间,腾出右侧关卡条空间);
-  // 电脑端保持固定 13×11 不变。
-  const mobileGrid = document.body.classList.contains('mobile-landscape');
-  if (mobileGrid) { const M = 1; COLS = pw + M * 2; ROWS = ph + M * 2; }
-  else { COLS = 13; ROWS = 11; }
-  cv.width = COLS * CELL; cv.height = ROWS * CELL;
-  if (mobileGrid) {                 // 行布局尺寸交给 CSS,清掉桌面用的内联尺寸
-    document.getElementById('panel').style.height = '';
-    document.getElementById('stage').style.width = '';
-  } else {
-    document.getElementById('panel').style.height = cv.height + 'px';
-    document.getElementById('stage').style.width = cv.width + 'px';
-  }
   target = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   grid   = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   // 把图纸居中放进网格
@@ -2037,9 +2022,16 @@ function updateOrientation() {
   const small = Math.min(window.innerWidth, window.innerHeight) <= 540;  // 手机尺寸
   const useMobile = touch && small;
   const portrait = window.innerHeight > window.innerWidth;
-  // 手机一律用横排布局;竖持时把整屏旋转 90° 强制横屏(平板/桌面不受影响)
   document.body.classList.toggle('mobile-landscape', useMobile);
   document.body.classList.toggle('force-rotate', useMobile && portrait);
+  // 手机:把"完成度"移到 #game 末尾(最下方);电脑:还原回顶栏
+  const prog = document.getElementById('progwrap');
+  const game = document.getElementById('game');
+  const topbar = document.getElementById('topbar');
+  if (prog && game && topbar) {
+    if (useMobile && prog.parentNode !== game) game.appendChild(prog);
+    else if (!useMobile && prog.parentNode !== topbar) topbar.appendChild(prog);
+  }
   fitGame();
 }
 window.addEventListener('resize', updateOrientation);
