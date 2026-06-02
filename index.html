@@ -325,9 +325,7 @@
   body.mobile-landscape #main { align-items: stretch; gap: 6px; justify-content: center; }
   body.mobile-landscape #panel { max-height: none; width: 210px; height: auto !important; align-self: stretch; padding: 12px; }
   /* 关键:覆盖桌面内联 width(=网格宽),否则关卡条会溢出被切 */
-  body.mobile-landscape #stage { flex-direction: row; align-items: stretch; justify-content: center; gap: 6px; width: auto !important; }
-  /* 画布填满中间行高度(由材料库/关卡条决定),aspect-ratio 保持方格;cellFromClient 用实际渲染尺寸自适应 */
-  body.mobile-landscape #cv { height: 100%; width: auto; max-width: 100%; aspect-ratio: 11 / 9; align-self: stretch; }
+  body.mobile-landscape #stage { flex-direction: row; align-items: center; justify-content: center; gap: 6px; width: auto !important; }
   body.mobile-landscape #hint { display: none; }
   body.mobile-landscape #lvbar {
     margin-top: 0; flex-direction: column; align-self: stretch;
