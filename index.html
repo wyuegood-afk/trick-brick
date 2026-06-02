@@ -342,6 +342,16 @@
     max-width: 84px; overflow-x: hidden; overflow-y: auto; padding: 6px;
   }
   body.mobile-landscape .lvchip { width: 60px; }
+  /* 竖持手机:把整屏(游戏+暂停/结算+关卡说明+开屏视频)一起旋转 90° 强制横屏 */
+  body.force-rotate #wrap,
+  body.force-rotate #intro,
+  body.force-rotate #splash {
+    position: fixed; top: 0; left: 0; right: auto; bottom: auto;
+    width: 100vh; height: 100vw;
+    transform-origin: top left;
+    transform: translateX(100vw) rotate(90deg);
+    overflow: hidden;
+  }
 </style>
 </head>
 <body>
@@ -2007,19 +2017,21 @@ async function fetchLevelConfig() {
 function fitGame() {
   const game = document.getElementById('game');
   if (!game) return;
-  const rotate = document.body.classList.contains('force-rotate');
-  const base = 'translate(-50%, -50%)' + (rotate ? ' rotate(90deg)' : '');
-  game.style.transform = base;              // 先不缩放,量出原始尺寸(offset 不受 transform 影响)
+  game.style.transform = 'translate(-50%, -50%)';   // 量原始尺寸(旋转由 #wrap 承担)
   const w = game.offsetWidth, h = game.offsetHeight;
   if (!w || !h) return;
-  const margin = 16;                        // 四周留白
-  const availW = window.innerWidth - margin;
-  const availH = window.innerHeight - margin;
-  // 旋转 90° 后:游戏的宽度对应屏幕高度、游戏高度对应屏幕宽度
-  let scale = rotate ? Math.min(availH / w, availW / h) : Math.min(availW / w, availH / h);
-  scale = Math.min(scale, 1.6);             // 大屏最多放大到 1.6 倍
-  if (scale < 0.2) scale = 0.2;             // 极小屏下限
-  game.style.transform = base + ' scale(' + scale + ')';   // 居中(+旋转)+缩放
+  const rotate = document.body.classList.contains('force-rotate');
+  const vv = window.visualViewport;                 // 比 innerWidth/Height 更准(排除地址栏)
+  const vpW = vv ? vv.width : window.innerWidth;
+  const vpH = vv ? vv.height : window.innerHeight;
+  const margin = 12;
+  // 竖持旋转时游戏在横屏容器(#wrap 100vh×100vw)内:可用宽=屏幕高、可用高=屏幕宽
+  const availW = (rotate ? vpH : vpW) - margin;
+  const availH = (rotate ? vpW : vpH) - margin;
+  let scale = Math.min(availW / w, availH / h);
+  scale = Math.min(scale, 1.6);
+  if (scale < 0.2) scale = 0.2;
+  game.style.transform = 'translate(-50%, -50%) scale(' + scale + ')';
 }
 // ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
 function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
@@ -2042,8 +2054,9 @@ async function lockLandscape() {
   } catch (e) {}
 }
 window.addEventListener('resize', updateOrientation);
-// 旋转后布局/视口尺寸需要一点时间稳定,延迟再量一次,避免缩放算错
-window.addEventListener('orientationchange', () => { updateOrientation(); setTimeout(updateOrientation, 300); });
+window.addEventListener('orientationchange', updateOrientation);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', fitGame);
+updateOrientation();   // 页面加载即判定手机/横屏并设好类,使开屏视频也横屏
 
 document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
