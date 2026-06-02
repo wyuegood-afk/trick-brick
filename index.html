@@ -109,7 +109,7 @@
   .lvchip .ico { font-size: 20px; display: block; line-height: 1.2; }
   .lvchip .ico-img { width: 22px; height: 22px; object-fit: contain; vertical-align: middle; display: inline-block; }
   .lvchip .n { font-size: 10px; opacity: .8; }
-  canvas { border-radius: 10px; background: transparent; cursor: pointer; }
+  canvas { border-radius: 10px; background: transparent; cursor: pointer; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
   #hint {
     margin-top: 12px;
     background: rgba(255,253,245,.92); color: #3a352c; border: 1.5px solid #6b6354; box-shadow: 2px 2px 0 rgba(107,99,84,.4);
@@ -279,9 +279,39 @@
     35% { transform: translateY(-18px) rotate(-8deg); }
   }
   @keyframes ldDots { 0%{content:"";} 25%{content:"·";} 50%{content:"··";} 75%{content:"···";} }
+  /* 竖屏旋转提示(手机端) */
+  #rotate-tip {
+    display: none; position: fixed; inset: 0; z-index: 300;
+    background: #1c1f26; color: #f4efe1; align-items: center; justify-content: center; text-align: center;
+    font-family: "STKaiti","KaiTi","楷体",cursive;
+  }
+  #rotate-tip .rt-icon { font-size: 64px; margin-bottom: 18px; animation: rtRotate 1.8s ease-in-out infinite; display: inline-block; }
+  #rotate-tip .rt-main { font-size: 22px; font-weight: 800; letter-spacing: 2px; }
+  #rotate-tip .rt-sub { font-size: 14px; opacity: .7; margin-top: 8px; }
+  @keyframes rtRotate { 0%,100%{transform:rotate(0)} 50%{transform:rotate(-90deg)} }
+  /* 点击/触摸波纹反馈 */
+  .tap-ripple {
+    position: fixed; z-index: 250; width: 36px; height: 36px; margin: -18px 0 0 -18px;
+    border-radius: 50%; pointer-events: none; border: 2px solid currentColor;
+    animation: tapRipple .45s ease-out forwards;
+  }
+  @keyframes tapRipple { from{transform:scale(.3);opacity:.9} to{transform:scale(1.8);opacity:0} }
+  /* 胜负全屏闪光 */
+  .fx-flash {
+    position: fixed; inset: 0; z-index: 240; pointer-events: none;
+    animation: fxFlash .5s ease-out forwards;
+  }
+  @keyframes fxFlash { from{opacity:.55} to{opacity:0} }
 </style>
 </head>
 <body>
+<div id="rotate-tip">
+  <div>
+    <div class="rt-icon">📱</div>
+    <div class="rt-main">请把手机横过来</div>
+    <div class="rt-sub">横屏游玩体验更佳</div>
+  </div>
+</div>
 <div id="wrap">
  <div id="game">
   <div id="topbar">
@@ -1200,45 +1230,94 @@ function playFailSound() {
 }
 
 // ---------- 放置 / 拆除 ----------
-cv.addEventListener('mousemove', e => {
+// ---------- 反馈 helper:触觉(震动) / 波纹 / 全屏闪光 ----------
+// 震动仅 Android/鸿蒙等支持 Vibration API 的设备生效,iOS 静默忽略。
+function haptic(pattern) {
+  try { if (!soundMuted && navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+}
+function tapRipple(clientX, clientY, color) {
+  try {
+    const d = document.createElement('div');
+    d.className = 'tap-ripple';
+    d.style.left = clientX + 'px'; d.style.top = clientY + 'px'; d.style.color = color;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 480);
+  } catch (e) {}
+}
+function fxFlash(color) {
+  try {
+    const d = document.createElement('div');
+    d.className = 'fx-flash'; d.style.background = color;
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 520);
+  } catch (e) {}
+}
+
+// 由 client 坐标换算格子(画布可能被整体缩放,用实际渲染尺寸)
+function cellFromClient(clientX, clientY) {
   const b = cv.getBoundingClientRect();
-  // 画布可能被整体缩放,用实际渲染尺寸换算格子坐标
-  mouse.c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
-  mouse.r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
+  return {
+    c: Math.floor((clientX - b.left) / (b.width  / COLS)),
+    r: Math.floor((clientY - b.top)  / (b.height / ROWS)),
+  };
+}
+
+cv.addEventListener('mousemove', e => {
+  const p = cellFromClient(e.clientX, e.clientY); mouse.c = p.c; mouse.r = p.r;
 });
 cv.addEventListener('mouseleave', () => { mouse.c = mouse.r = -1; });
+
+// 触摸:更新悬停 + 抬起放置;阻止默认避免页面滚动/缩放与合成 click 重复
+let lastTouchAt = 0;
+cv.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  if (t) { const p = cellFromClient(t.clientX, t.clientY); mouse.c = p.c; mouse.r = p.r; }
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  if (t) { const p = cellFromClient(t.clientX, t.clientY); mouse.c = p.c; mouse.r = p.r; }
+  e.preventDefault();
+}, { passive: false });
+cv.addEventListener('touchend', e => {
+  lastTouchAt = perfNow();
+  const t = e.changedTouches[0];
+  if (t) boardTap(t.clientX, t.clientY);
+  mouse.c = mouse.r = -1;
+  e.preventDefault();
+}, { passive: false });
+
 cv.addEventListener('click', e => {
+  if (perfNow() - lastTouchAt < 600) return;   // 触摸已处理,忽略合成 click,避免重复放置
+  boardTap(e.clientX, e.clientY);
+});
+
+// 棋盘点击/触摸:放置/拆除一格,并附带触觉+波纹反馈
+function boardTap(clientX, clientY) {
   if (phase !== 'play') return;
-  const b = cv.getBoundingClientRect();
-  const c = Math.floor((e.clientX - b.left) / (b.width  / COLS));
-  const r = Math.floor((e.clientY - b.top)  / (b.height / ROWS));
+  const { c, r } = cellFromClient(clientX, clientY);
   if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
-  if (!inBounds(r, c)) return;   // 非可填充格子禁用,不可点击
+  if (!inBounds(r, c)) return;   // 非可填充格子禁用
   const cell = grid[r][c];
   if (cell) {
-    // 石头障碍:不可点击/拆除,需用相邻红砖(火)烧碎
-    if (cell.type === 'stone') {
-      flashHint('🪨 这是石头障碍,用相邻的红砖把它烧碎吧!');
-      return;
-    }
-    // 被绿色蔓延出来的格子(孢子)已"长死"——不能拆除、不能改颜色
-    if (cell.type === 'green' && !cell.byPlayer) {
-      flashHint('🌿 这里被绿砖蔓延占据了,无法再改动!');
-      return;
-    }
+    if (cell.type === 'stone') { flashHint('🪨 这是石头障碍,用相邻的红砖把它烧碎吧!'); haptic(30); return; }
+    if (cell.type === 'green' && !cell.byPlayer) { flashHint('🌿 这里被绿砖蔓延占据了,无法再改动!'); haptic(30); return; }
     // 拆除:玩家放的回收库存,副作用产生的(孢子)不回收
     if (cell.byPlayer) inventory[cell.type]++;
     grid[r][c] = null;
+    haptic(8); tapRipple(clientX, clientY, 'rgba(150,150,150,.8)');
   } else {
-    // 触发解锁:点到尚未解锁的颜色目标格 → 在左侧揭示这块新砖并给出副作用提示
+    // 触发解锁:点到尚未解锁的颜色目标格
     const tcol = target[r][c];
     if (tcol && lockedSet.has(tcol) && !unlocked.has(tcol)) {
       unlocked.add(tcol); lockedSet.delete(tcol); selected = tcol;
       flashHint(`🎉 发现新材料 · ${BRICKS[tcol].name}:${BRICKS[tcol].desc}`);
+      haptic([12, 40, 25]);
       if (inventory[tcol] > 0) {
         grid[r][c] = { type: tcol, byPlayer: true, age: 0, protect: false };
         inventory[tcol]--;
         playPlaceSound();
+        tapRipple(clientX, clientY, 'rgba(255,233,168,.95)');
       }
       buildPanel();
       return;
@@ -1248,12 +1327,14 @@ cv.addEventListener('click', e => {
       grid[r][c] = { type: placed, byPlayer: true, age: 0, protect: false };
       inventory[placed]--;
       playPlaceSound();
-      // 放错颜色提示音(目标格存在且颜色不匹配,彩虹砖万能不算错)
+      // 放错颜色提示(目标格存在且颜色不匹配,彩虹砖万能不算错)
       const tgt = target[r][c];
       if (tgt && placed !== tgt && placed !== 'rainbow') {
         sfx('wrong', playWrongSound, 80);
+        haptic([15, 30, 15]); tapRipple(clientX, clientY, 'rgba(220,70,70,.9)');
+      } else {
+        haptic(10); tapRipple(clientX, clientY, 'rgba(255,255,255,.9)');
       }
-      // 第一次放下神秘砖 → 揭示并提示其副作用
       if (mysterySet.has(placed) && !revealed.has(placed)) {
         revealed.add(placed);
         flashHint(`🔬 ${BRICKS[placed].name}的副作用:${BRICKS[placed].desc}`);
@@ -1262,7 +1343,7 @@ cv.addEventListener('click', e => {
     }
   }
   buildPanel();
-});
+}
 function autoSelect() {
   const k = [...unlocked].find(t => inventory[t] > 0);
   if (k) selected = k;
@@ -1589,6 +1670,8 @@ function updateHUD() {
 // ---------- 胜负界面 ----------
 function showWin() {
   playWinSound();
+  haptic([0, 35, 50, 35, 90]);            // 通关:欢快的多段震动
+  fxFlash('radial-gradient(circle, rgba(90,220,140,.45), rgba(90,220,140,0) 70%)');
   // 埋点:本关通关(含实际耗时与剩余时间,用于难度/时长分析)
   if (window.TBTrack) {
     const allotted = LEVELS[levelIdx].time;
@@ -1619,6 +1702,8 @@ function showWin() {
 }
 function showLose() {
   playFailSound();
+  haptic([90, 50, 90]);                   // 失败:沉重的两段震动
+  fxFlash('radial-gradient(circle, rgba(220,80,80,.45), rgba(220,80,80,0) 70%)');
   const ov = document.getElementById('overlay');
   const p = evalProgress();
   // 埋点:本关失败(时间耗尽),记录结束时完成度(区分"差一点"还是"机制太难")
@@ -1882,8 +1967,23 @@ function fitGame() {
   if (scale < 0.3) scale = 0.3;             // 极小屏下限
   game.style.transform = 'scale(' + scale + ')';
 }
-window.addEventListener('resize', fitGame);
-window.addEventListener('orientationchange', fitGame);
+// ---------- 横屏适配:手机竖屏时提示旋转,尽力锁定横屏 ----------
+function isTouchDevice() { return ('ontouchstart' in window) || (navigator.maxTouchPoints || 0) > 0; }
+function updateOrientation() {
+  const tip = document.getElementById('rotate-tip');
+  // 仅触屏设备且竖屏时显示"请横屏"遮罩;桌面端永不显示
+  const portrait = window.innerHeight > window.innerWidth;
+  if (tip) tip.style.display = (isTouchDevice() && portrait) ? 'flex' : 'none';
+  fitGame();
+}
+async function lockLandscape() {
+  // 仅 Android 等支持、且多在全屏下才生效;iOS Safari 不支持,失败静默
+  try {
+    if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape');
+  } catch (e) {}
+}
+window.addEventListener('resize', updateOrientation);
+window.addEventListener('orientationchange', updateOrientation);
 
 document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
@@ -1892,10 +1992,11 @@ document.getElementById('splash-start').onclick = async () => {
   sp.classList.add('hide');
   setTimeout(() => sp.remove(), 500);
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
+  if (isTouchDevice()) lockLandscape();    // 手机端尽力锁横屏(不支持则靠下方提示)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
-  fitGame();               // 进入游戏后按屏幕大小缩放居中
+  updateOrientation();     // 进入游戏后:竖屏提示旋转 + 按屏幕缩放居中
   loop();
 };
 </script>
