@@ -13,7 +13,7 @@
   }
   #wrap { position: fixed; inset: 0; overflow: hidden; }
   /* 绝对定位 + translate(-50%,-50%) 按自身尺寸真正居中,缩放后也不偏(scale 不影响布局盒,用 flex 居中会算错) */
-  #game { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
+  #game { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; transform: translate(-50%, -50%); }
   #main { display: flex; align-items: flex-start; gap: 14px; }
 
   /* 左侧材料库(素描手绘风:纸片底 + 柔墨描边 + 楷体) */
@@ -2010,14 +2010,15 @@ document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
   const vid = document.getElementById('splash-video');
   if (vid) { vid.pause(); }
-  sp.classList.add('hide');
-  setTimeout(() => sp.remove(), 500);
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
   if (isTouchDevice()) lockLandscape();    // 手机端尽力锁横屏(不支持则靠下方提示)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
-  updateOrientation();     // 进入游戏后:竖屏提示旋转 + 按屏幕缩放居中
+  updateOrientation();     // 先把第一关布局好并居中/缩放
+  // 一切就绪后再淡出开场遮罩,避免露出"未居中"的游戏画面导致跳动
+  sp.classList.add('hide');
+  setTimeout(() => sp.remove(), 500);
   loop();
 };
 </script>
