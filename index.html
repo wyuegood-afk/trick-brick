@@ -11,10 +11,13 @@
     background: url('background.png') center/cover no-repeat fixed;
     color: #eee; overflow: hidden;
   }
-  #wrap { position: fixed; inset: 0; overflow: hidden; }
-  /* 绝对定位 + translate(-50%,-50%) 按自身尺寸真正居中,缩放后也不偏(scale 不影响布局盒,用 flex 居中会算错) */
-  #game { position: absolute; top: 50%; left: 50%; display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; transform: translate(-50%, -50%); }
+  /* 桌面:原始 flex 居中(不变) */
+  #wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; overflow: hidden; }
+  #game { display: flex; flex-direction: column; align-items: center; gap: 12px; transform-origin: center center; }
   #main { display: flex; align-items: flex-start; gap: 14px; }
+  /* 手机:改用 fixed + 绝对定位 translate 居中(配合旋转/缩放) */
+  body.mobile-landscape #wrap { position: fixed; inset: 0; display: block; min-height: 0; }
+  body.mobile-landscape #game { position: absolute; top: 50%; left: 50%; }
 
   /* 左侧材料库(素描手绘风:纸片底 + 柔墨描边 + 楷体) */
   #panel {
@@ -255,9 +258,11 @@
   #splash-loading {
     position: fixed; inset: 0; z-index: 5;
     background: #000;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    display: none;            /* 默认不显示(桌面保持原样,开场不带载入动画) */
+    flex-direction: column; align-items: center; justify-content: center; gap: 26px;
     transition: opacity .45s ease;
   }
+  body.mobile-landscape #splash-loading { display: flex; }   /* 仅手机显示载入动画 */
   #splash-loading.hide { opacity: 0; pointer-events: none; }
   .ld-bricks { display: flex; gap: 12px; }
   .ld-bricks span {
@@ -1951,7 +1956,8 @@ levelIdx = 0;
   let revealed = false;
   const reveal = () => {
     if (revealed) return; revealed = true;
-    cleanup();                                     // 移除手势监听,避免播完后移动鼠标/点击触发 vid.play() 重播
+    // 仅手机:移除手势监听,避免播完后触碰触发重播(桌面保持原行为)
+    if (document.body.classList.contains('mobile-landscape')) cleanup();
     if (ui) ui.classList.add('show');
     if (skipBtn) skipBtn.style.display = 'none';   // 显示开始界面后隐藏"跳过"按钮
   };
@@ -2004,15 +2010,27 @@ async function fetchLevelConfig() {
 function fitGame() {
   const game = document.getElementById('game');
   if (!game) return;
-  game.style.transform = 'translate(-50%, -50%)';   // 量原始尺寸(旋转由 #wrap 承担)
+  if (!document.body.classList.contains('mobile-landscape')) {
+    // 桌面:原始逻辑(flex 居中 + 纯 scale)
+    game.style.transform = 'none';
+    const w = game.offsetWidth, h = game.offsetHeight;
+    if (!w || !h) return;
+    const margin = 24;
+    let scale = Math.min((window.innerWidth - margin) / w, (window.innerHeight - margin) / h);
+    scale = Math.min(scale, 1.6);
+    if (scale < 0.3) scale = 0.3;
+    game.style.transform = 'scale(' + scale + ')';
+    return;
+  }
+  // 手机:translate 居中 + 旋转(由 #wrap 承担)时交换可用宽高 + visualViewport
+  game.style.transform = 'translate(-50%, -50%)';
   const w = game.offsetWidth, h = game.offsetHeight;
   if (!w || !h) return;
   const rotate = document.body.classList.contains('force-rotate');
-  const vv = window.visualViewport;                 // 比 innerWidth/Height 更准(排除地址栏)
+  const vv = window.visualViewport;
   const vpW = vv ? vv.width : window.innerWidth;
   const vpH = vv ? vv.height : window.innerHeight;
   const margin = 12;
-  // 竖持旋转时游戏在横屏容器(#wrap 100vh×100vw)内:可用宽=屏幕高、可用高=屏幕宽
   const availW = (rotate ? vpH : vpW) - margin;
   const availH = (rotate ? vpW : vpH) - margin;
   let scale = Math.min(availW / w, availH / h);
@@ -2041,14 +2059,20 @@ document.getElementById('splash-start').onclick = async () => {
   const sp = document.getElementById('splash');
   const vid = document.getElementById('splash-video');
   if (vid) { vid.pause(); }
+  const mobile = document.body.classList.contains('mobile-landscape');
+  if (!mobile) {            // 桌面:原始顺序——立即淡出开场
+    sp.classList.add('hide');
+    setTimeout(() => sp.remove(), 500);
+  }
   startBgm();              // 进入游戏即开始背景音乐(此处为用户手势,可正常出声)
   await fetchLevelConfig();   // 先尝试拉取后台配置的时长(失败则用默认),再进第一关
   window.TBTrack && TBTrack.gameStart();   // 埋点:开始一次全新游玩
   loadLevel(0);
-  updateOrientation();     // 先把第一关布局好并居中/缩放
-  // 一切就绪后再淡出开场遮罩,避免露出"未居中"的游戏画面导致跳动
-  sp.classList.add('hide');
-  setTimeout(() => sp.remove(), 500);
+  updateOrientation();
+  if (mobile) {            // 手机:布局并居中后再淡出,避免露出未居中画面跳动
+    sp.classList.add('hide');
+    setTimeout(() => sp.remove(), 500);
+  }
   loop();
 };
 </script>
