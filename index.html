@@ -526,8 +526,7 @@ const LEVEL_INTROS = [
 ];
 
 // ---------- 网格与状态 ----------
-let COLS = 13, ROWS = 11;   // 电脑端 13×11;手机端 11×9(见 loadLevel)
-const CELL = 44;
+let COLS = 13, ROWS = 11, CELL = 44;   // 电脑端 13×11×44;手机端 11×9×54(见 loadLevel)
 const cv = document.getElementById('cv');
 cv.width = COLS * CELL; cv.height = ROWS * CELL;
 document.getElementById('panel').style.height = cv.height + 'px';   // 材料库与网格等高
@@ -546,9 +545,9 @@ const mouse = { c: -1, r: -1 };
 
 function loadLevel(idx) {
   const lv = LEVELS[idx];
-  // 手机端用 11列×9行(刚好容纳最大图案,更省空间);电脑端 13×11
-  if (document.body.classList.contains('mobile-landscape')) { COLS = 11; ROWS = 9; }
-  else { COLS = 13; ROWS = 11; }
+  // 手机端用 11列×9行,格子放大(54)让网格与材料库/关卡条等高;电脑端 13×11×44
+  if (document.body.classList.contains('mobile-landscape')) { COLS = 11; ROWS = 9; CELL = 54; }
+  else { COLS = 13; ROWS = 11; CELL = 44; }
   cv.width = COLS * CELL; cv.height = ROWS * CELL;
   target = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   grid   = Array.from({length: ROWS}, () => Array(COLS).fill(null));
