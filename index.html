@@ -211,8 +211,9 @@
   /* 视频播完后才浮现的标题与按钮(初始隐藏) */
   #splash-ui {
     position: relative; z-index: 1;
-    display: flex; flex-direction: column; align-items: center; gap: 20px;
-    padding: 30px 40px; border-radius: 18px;
+    display: flex; flex-direction: column; align-items: center; gap: clamp(12px,2.5vmin,20px);
+    padding: clamp(18px,4vmin,30px) clamp(20px,5vmin,40px); border-radius: 18px;
+    max-width: min(92vw, 560px); max-height: 90vh; overflow-y: auto;
     background: rgba(244,239,225,.86); box-shadow: 0 8px 40px rgba(0,0,0,.45);
     opacity: 0; pointer-events: none; transition: opacity .6s ease;
   }
@@ -231,20 +232,20 @@
   #splash-skip:active { transform: translateY(1px); }
   .splash-title {
     font-family: "STKaiti","KaiTi","楷体",cursive;
-    font-size: 54px; font-weight: 800; letter-spacing: 4px; color:#222;
+    font-size: clamp(28px, 8vmin, 54px); font-weight: 800; letter-spacing: clamp(2px,.6vmin,4px); color:#222;
     text-shadow: 1.5px 1.5px 0 #cdbfa0;
     animation: titlePop .6s cubic-bezier(.2,1.35,.4,1) both;
   }
   .splash-sub {
     font-family: "STKaiti","KaiTi","楷体",cursive;
-    font-size: 16px; opacity: .85; line-height: 1.9; white-space: nowrap;
+    font-size: clamp(12px, 2.6vmin, 16px); opacity: .85; line-height: 1.8; text-align: center;
     animation: splashFade .8s ease .3s both;
   }
   #splash-start {
     margin-top: 8px; font-family: "STKaiti","KaiTi","楷体",cursive;
-    font-size: 22px; font-weight: 700; color:#2a2a2a;
+    font-size: clamp(16px, 4vmin, 22px); font-weight: 700; color:#2a2a2a;
     background: #fffdf5; border: 2.5px solid #2a2a2a; border-radius: 14px;
-    padding: 11px 44px; cursor: pointer;
+    padding: clamp(9px,2.2vmin,11px) clamp(30px,7vmin,44px); cursor: pointer;
     box-shadow: 3px 3px 0 #2a2a2a;
     animation: splashFade .8s ease .5s both;
     transition: transform .12s, box-shadow .12s;
