@@ -526,7 +526,8 @@ const LEVEL_INTROS = [
 ];
 
 // ---------- 网格与状态 ----------
-const COLS = 13, ROWS = 11, CELL = 44;
+let COLS = 13, ROWS = 11;            // 电脑端固定 13×11;手机端按关卡缩小(见 loadLevel)
+const CELL = 44;
 const cv = document.getElementById('cv');
 cv.width = COLS * CELL; cv.height = ROWS * CELL;
 document.getElementById('panel').style.height = cv.height + 'px';   // 材料库与网格等高
@@ -545,10 +546,23 @@ const mouse = { c: -1, r: -1 };
 
 function loadLevel(idx) {
   const lv = LEVELS[idx];
+  const ph = lv.rows.length, pw = lv.rows[0].length;
+  // 手机端把网格缩成"图案 + 1 格边距"(给蔓延/烧裂留点空间,腾出右侧关卡条空间);
+  // 电脑端保持固定 13×11 不变。
+  const mobileGrid = document.body.classList.contains('mobile-landscape');
+  if (mobileGrid) { const M = 1; COLS = pw + M * 2; ROWS = ph + M * 2; }
+  else { COLS = 13; ROWS = 11; }
+  cv.width = COLS * CELL; cv.height = ROWS * CELL;
+  if (mobileGrid) {                 // 行布局尺寸交给 CSS,清掉桌面用的内联尺寸
+    document.getElementById('panel').style.height = '';
+    document.getElementById('stage').style.width = '';
+  } else {
+    document.getElementById('panel').style.height = cv.height + 'px';
+    document.getElementById('stage').style.width = cv.width + 'px';
+  }
   target = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   grid   = Array.from({length: ROWS}, () => Array(COLS).fill(null));
   // 把图纸居中放进网格
-  const ph = lv.rows.length, pw = lv.rows[0].length;
   const or = Math.floor((ROWS - ph) / 2), oc = Math.floor((COLS - pw) / 2);
   const need = {};
   burnableSet = new Set();
