@@ -1438,10 +1438,12 @@ function updateBurn(dt) {
   forEach((r, c, cell) => {
     if (!cell || cell.type === 'yellow' || cell.type === 'black') return;   // 火砖/黑砖不被烧
     const isStone = cell.type === 'stone';
-    if (!isStone && !gateOpen) return;          // 普通砖受 burnAfter 门槛限制;石头不受限
-    // 蔓延出来的绿砖(孢子)永远可被火烧掉,不受本关"限定可烧格"白名单限制
+    // 蔓延出来的绿砖(孢子)是入侵物:永远可被火烧、不受门槛/白名单/黑砖保护/名额限制,
+    // 只要挨着火就一定会被清掉(与石头同等待遇),避免"挨着红却烧不掉"。
     const isSpreadGreen = cell.type === 'green' && !cell.byPlayer;
-    if (!isStone && !isSpreadGreen && restrict && !burnableSet.has(r + ',' + c)) return;
+    const priority = isStone || isSpreadGreen;   // 高优先:不受门槛/白名单/护盾/名额限制
+    if (!priority && !gateOpen) return;          // 普通砖受 burnAfter 门槛限制
+    if (!priority && restrict && !burnableSet.has(r + ',' + c)) return;
     let fire = 0, guarded = false;
     for (const [dr, dc] of ORTHO) {
       const nr = r + dr, nc = c + dc;
@@ -1451,7 +1453,7 @@ function updateBurn(dt) {
       if (t.type === 'black') guarded = true;
       if (t.type === 'yellow') fire++;
     }
-    if (fire > 0 && (!guarded || isStone)) { candidates.push({ r, c, cell, isStone, fire }); }   // 石头不被黑砖保护
+    if (fire > 0 && (!guarded || priority)) { candidates.push({ r, c, cell, isStone, priority, fire }); }   // 石头/蔓延绿不被黑砖保护
     else if (fire > 0 && guarded) {             // 紧贴火砖但被黑砖护住:护盾反馈音
       sfx('protect', playProtectSound, 600);
       if (cell.burn) { cell.burn -= dt * 1000 / healMs; if (cell.burn < 0) cell.burn = 0; }
@@ -1461,14 +1463,14 @@ function updateBurn(dt) {
   });
 
   // 限制同时烧的数量:已经在烧的(burn>0)优先继续;名额没满才允许新格开始烧,其余暂停。
-  // 石头障碍不占用、也不受该名额限制 —— 只要挨着火就一定会被烧。
+  // 石头障碍 / 蔓延绿砖不占用、也不受该名额限制 —— 只要挨着火就一定会被烧。
   candidates.sort((a, b) => (b.cell.burn || 0) - (a.cell.burn || 0));   // 进度高的优先
   let burningCount = 0;
   for (const cand of candidates) {
-    const { r, c, cell, isStone, fire } = cand;
+    const { r, c, cell, isStone, priority, fire } = cand;
     const already = cell.burn > 0;
-    if (!isStone && burningCount >= maxBurning && !already) continue;   // 名额已满且这格还没开始烧 → 暂不点燃(石头除外)
-    if (!isStone) burningCount++;
+    if (!priority && burningCount >= maxBurning && !already) continue;   // 名额已满且这格还没开始烧 → 暂不点燃(石头/蔓延绿除外)
+    if (!priority) burningCount++;
     if (!cell.burn) {                           // 首次被点燃:固定裂纹形态与个体速度差异
       cell.burn = 0;
       cell.crackSeed = (Math.random() * 1e9) | 0;
